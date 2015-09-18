@@ -70,8 +70,8 @@ Linux で動作しますが、CPUの種類でパッケージが異なります�
 - 見出しは4段階あります。
 - 整形済みのフォーマット指定は4種類あります。
 - 画像挿入の指定方法が異なります。
-- 行頭はスペースでも整形済み(<pre>)になりません。
-- > による引用文はありません。
+- 行頭はスペースでも整形済み(&lt;pre&gt;)になりません。
+- &gt; による引用文はありません。
 - Wikiのページ名へのリンクは[[ページ名]]ではかけません。
 - 大文字小文字を混ぜた英文字列はWikiのページ名としてリンクになりません。
 - テーブル中にコンマ(,)を書くことはできません。
@@ -92,21 +92,23 @@ pages ディレクトリは変更する必要はありません。
 
 ## インストール手順
 
-RvtlWiki を動作させるためには rvtl (http://www.mztn.org/) が
-必要です。rvtl-3.05.tar.gz (PC)、rvtl-3.03.1ppc.tar.gz(玄箱)、
-rvtl-3.05arm.tar.gz (Linux Zaurus) 中の rvtl を /usr/bin/
-にコピーしてください。
+RvtlWiki を動作させるためには rvtl (http://www.mztn.org/) が必要です。 rvtl-x86-3.05.tar.gz または rvtl-amd64-4.01.tar.gz (PC)、rvtl-3.03.1ppc.tar.gz(玄箱)、rvtl-arm-3.05.tar.gz (Raspberry Pi) 、rvtl-arm64-4.01.tar.gz (Dragonboard410C) 中の rvtl または rvtl64 を /usr/bin/にコピーしてください。
 
-また rvtl を rvtlw というファイル名で /usr/bin/ 以下にシンボリックリンク
-を作成するか、
+rvtl または rvtl64 を rvtlw というファイル名で /usr/bin/ 以下にシンボリックリンクを作成するか、
 
     cd /usr/bin
     ln -s rvtl rvtlw
 
-または rvtl を rvtlw というファイル名でコピーしてください。
+    cd /usr/bin
+    ln -s rvtl64 rvtlw
+
+rvtl または rvtl64 を rvtlw というファイル名でコピーしてください。
 
     cd /usr/bin
     cp rvtl rvtlw
+
+    cd /usr/bin
+    cp rvtl64 rvtlw
 
 RvtlWikiは複数のファイルで構成されています。rvtlwiki.cgiには実行可能
 属性(755)、その他は読みだし可能(644)である必要があります。
