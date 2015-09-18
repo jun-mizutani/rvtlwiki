@@ -1,0 +1,2075 @@
+#!/usr/bin/rvtlw
+ 
+:-------------------------------------------------------------
+: RvtlWiki (rvtlwiki.cgi)
+: version : 2.00 (64bit) 2015/09/19
+: Copyright (C) 2005-2015
+:   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
+: & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
+:     RvtlWiki may be copied under the terms of the
+:     GNU General Public License.
+:------------------------------------------------------------
+   |ve
+   ;=(%>>32)=1 #=^START
+     "rvtl では動作しません。rvtl64 で起動してください。"
+     #=-1
+  ^START
+   z=&                : heap top
+   U=z z=z+1024       : ユーザ設定領域
+:-------------------------------------------------------------
+: ユーザ設定
+:-------------------------------------------------------------
+   u=U                : 変更不可
+   u*="./data/"       : dataディレクトリのパス名 U[0]
+   u=U+64             : 変更不可
+   u*="./pages/"      : pagesディレクトリのパス名 U[16]
+   u=U+128            : 変更不可
+   u*="http://www.example.com/rvtlwiki/" : URL U[32]
+   u=U+768            : 変更不可
+   u*="RvtlWiki"      : フロントページのタイトル
+   u=U+512            : 変更不可
+   u*="RvtlWiki New"  : RSSタイトル
+   u=U+640            : 変更不可
+   u*="RvtlWiki RSS"  : RSS description
+   U['N']=256*1024    : 最大ページサイズ
+   U['W']=80          : 編集領域の桁数
+   U['H']=30          : 編集領域の行数
+   U['R']=40          : 更新履歴表示件数
+:-------------------------------------------------------------
+: グローバル変数(配列を除く)
+:-------------------------
+: C          : ページDB要素数
+: I          : リモートIPアドレスを保持
+: M          : CGIモード
+: N          : buffer size 単位
+: O          : グループDB要素数
+: S          : ローカル変数として Lockfile名
+: z=&        : heap top
+:-------------------------
+: メモリー確保
+:-------------------------
+   N=U['N']
+   *=*+(7*N)          : メモリ拡張
+   B=z z=z+256        : Buffer
+   Q=z z=z+256        : Post Data Buffer
+   R=z z=z+256        : Data Buffer
+   Z=z z=z+256        : rvtlwiki.cgi
+   J=z z=z+256        : version
+   :E
+   F=z z=z+24576      : FileName      (num <1535)
+   :G
+   :H
+   L=z z=z+256        : POSTデータ文字列先頭配列
+   X=z z=z+8192       : Group管理データワーク
+   Y=z z=z+8192       : Groupタイトル格納
+   V=z z=z+4096       : Group管理データ
+   A=z z=z+N          : ページ管理ファイル
+   D=z z=z+N          : ページ管理タイトルBuffer
+   T=z z=z+N          : text
+   P=z z=z+N          : POST文字列(URLデコード済み)保存
+   W=z z=z+(N*3)      : work
+:
+   Z*="rvtlwiki.cgi"
+   |ve ;=%<0 Z*="rvtlwiki.elf.cgi"
+   J*="Powered by RvtlWiki 2.00(64bit)"
+   [=0                : 範囲チェックOFF
+   C=0                : ページDB要素数
+   O=0                : グループDB要素数
+   !=^TimerStart
+:
+   :-------------------------
+   : 動作モードの決定
+   :-------------------------
+   !=^REMOTE_ADDR I=r
+   x=B s=W !=^REQUEST
+   ;=r='P' x=B !=^RequestPost Mode='Post' #=^Get
+   ;=r='G' x=B !=^RequestGet  Mode='Get'  #=^Get
+   "No REQUEST_METHOD"  / #=^Exit
+   :--- GET の場合 ---
+   ^Get
+   ;=Mode<>'Get' #=^Post
+   B*="DispPage"      x=B !=^SearchPost ;=r Mode='Disp' #=^DoCommand
+   B*="Static"        x=B !=^SearchPost ;=r Mode='Stat' #=^DoCommand
+   B*="CreatePage"    x=B !=^SearchPost ;=r Mode='CrPg' #=^DoCommand
+   B*="CreateGroup"   x=B !=^SearchPost ;=r Mode='CrGp' #=^DoCommand
+   B*="ChangePage"    x=B !=^SearchPost ;=r Mode='ChPg' #=^DoCommand
+   B*="ChangeGroup"   x=B !=^SearchPost ;=r Mode='ChGp' #=^DoCommand
+   B*="IndexPage"     x=B !=^SearchPost ;=r Mode='Indx' #=^DoCommand
+   B*="FrontPage"     x=B !=^SearchPost ;=r Mode='Frnt' #=^DoCommand
+   B*="RecentChanges" x=B !=^SearchPost ;=r Mode='Rcnt' #=^DoCommand
+   B*="Edit"          x=B !=^SearchPost ;=r Mode='Edit' #=^DoCommand
+   B*="GroupList"     x=B !=^SearchPost ;=r Mode='List' #=^DoCommand
+   B*="Append"        x=B !=^SearchPost ;=r Mode='Appd' #=^DoCommand
+   B*="RSS"           x=B !=^SearchPost ;=r Mode='RSS ' #=^DoCommand
+   Mode='Frnt' #=^DoCommand   : デフォルトは目次
+   #=^Exit
+   :--- POST の場合 ---
+   ^Post
+   y=Q
+   B*="preview="      x=B !=^GetPost ;=r Mode='PrVw' #=^DoCommand
+   B*="store="        x=B !=^GetPost ;=r Mode='Stor' #=^DoCommand
+   B*="newpage="      x=B !=^GetPost ;=r Mode='NwPg' #=^DoCommand
+   B*="newgroup="     x=B !=^GetPost ;=r Mode='NwGp' #=^DoCommand
+   B*="pagerename="   x=B !=^GetPost ;=r Mode='PgNm' #=^DoCommand
+   B*="NewGroupName=" x=B !=^GetPost ;=r Mode='GpNm' #=^DoCommand
+   B*="message="      x=B !=^GetPost ;=r Mode='DoAp' #=^DoCommand
+   B*="AddBottom="    x=B !=^GetPost ;=r Mode='DoAp' #=^DoCommand
+   B*="AddTop="       x=B !=^GetPost ;=r Mode='DoAT' #=^DoCommand
+   #=^Exit
+:
+   :-------------------------
+   : コマンドの実行
+   :-------------------------
+  ^DoCommand
+:  RSS は HTMLヘッダ不要
+   ;=Mode='RSS ' !=^RSS            #=^Exit2
+:  HTML Header
+   "Content-type: text/html; charset=UTF-8" / /
+   "<!DOCTYPE html>" /
+   "<html lang='ja'>"
+   / "<head>" /
+   "<meta charset='UTF-8' />" /
+   ;=Mode<>'Frnt' #=^CheckCommand
+:  FrontPage
+   "<link rel='alternate' type='application/rss+xml' title='RSS'"
+   " href='" $*=Z "?RSS' />" /
+   !=^FrontPage
+   #=^Exit
+:
+  ^CheckCommand
+   ;=Mode='Disp' !=^DisplayPage    #=^Exit
+   ;=Mode='Stat' !=^StaticPage     #=^Exit1
+   ;=Mode='Indx' !=^IndexPage      #=^Exit
+   ;=Mode='Rcnt' !=^RecentChanges  #=^Exit
+   ;=Mode='Edit' !=^Edit           #=^Exit
+   ;=Mode='PrVw' !=^Preview        #=^Exit
+   ;=Mode='Stor' !=^StorePage      #=^Exit
+   ;=Mode='CrPg' !=^CreatePage     #=^Exit
+   ;=Mode='CrGp' !=^CreateGroup    #=^Exit
+   ;=Mode='NwPg' !=^NewPage        #=^Exit
+   ;=Mode='NwGp' !=^NewGroup       #=^Exit
+   ;=Mode='ChPg' !=^ChangePage     #=^Exit
+   ;=Mode='ChGp' !=^ChangeGroup    #=^Exit
+   ;=Mode='PgNm' !=^DoPageRename   #=^Exit
+   ;=Mode='GpNm' !=^DoGroupRename  #=^Exit
+   ;=Mode='List' !=^GroupList      #=^Exit
+   ;=Mode='DoAp' !=^DoAppend       #=^Exit
+   ;=Mode='DoAT' !=^DoTopAppend    #=^Exit
+   ;=Mode='Appd' !=^Append         #=^Exit
+   "<p> Undefined Command </p>"
+   #=^Exit
+:
+   :-------------------------
+   : 終了
+   :-------------------------
+^Exit
+   a=I s=Q !=^SetADDR
+   "<div id='footer'><hr /><small><p align='right'> "
+   !=^TimerStop " from " $*=s
+   "</p></small><hr />" /
+   "<p align='right'><em>"
+   "<a href='http://www.mztn.org/'>" $*=J "</a></em><br />" /
+   "<img src='"
+   x=Q !=^PathLogo $*=Q
+   "' alt='*' width='80' height='40' /></p></div>" /
+^Exit1
+   "<br />" / / "</body>" / "</html>" /
+^Exit2
+   "" /
+   #=-1
+:
+:-------------------------------------------------
+: ページ管理ファイルのパス名を設定
+:  (in)  x : バッファアドレス
+:  (out) x : pages.txt のパス文字列を設定
+:-------------------------------------------------
+^PathPages
+   +pu
+   p=x u=U+64
+   p*=u p=p+%
+   p*="pages.txt"
+   -up
+]
+:-------------------------------------------------
+: RSS Feed
+:-------------------------------------------------
+^RSS
+   "Content-Type: text/html; charset=UTF-8" / /
+   "<?xml version='1.0' encoding='UTF-8' ?>" / /
+   "<rdf:RDF" /
+   " xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'" /
+   " xmlns='http://purl.org/rss/1.0/'" /
+   " xmlns:dc='http://purl.org/dc/elements/1.1/'" /
+   ">" / /
+   !=^PageDBRead
+   !=^GroupDBRead
+   ;=O=0 #=^rss02  : グループDB要素数のチェック
+   "<channel rdf:about='"
+   !=^RssURL "?RSS'>" /
+   " <title>" u=U+512 $*=u "</title>" /
+   " <link>" !=^RssURL "</link>" /
+   " <description>" u=U+640 $*=u "</description>" /
+   " <items>" /
+   "  <rdf:Seq>" /
+   i=0,O-1
+     "  <rdf:li rdf:resource='"
+     !=^RssURL2 ?=V[i*4+2]
+     "' />" /
+   @=i+1
+   "  </rdf:Seq>" /
+   " </items>" /
+   "</channel>" /
+:
+   i=0,O-1
+     g=0 e=0
+     ;=C=0 #=^rss01
+     j=0,C-1
+       ;=F[j*4+2]=V[i*4+2] g=g+1 ;=F[j*4+0]>e e=F[j*4+0]
+     @=j+1
+     ^rss01
+     "  <item rdf:about='" !=^RssURL2 ?=V[i*4+2] "'>" /
+     "   <title>" !=^PageTime " - " $*=V[i*4+3] "</title>" /
+     "   <link>" !=^RssURL2 ?=V[i*4+2] "</link>" /
+     "   <description>" $*=V[i*4+3] "</description>" /
+     "   <dc:date>"
+     !=^PageTime
+     "   </dc:date>" /
+     "  </item>" / /
+   @=i+1
+   ^rss02
+   "</rdf:RDF>" /
+]
+:
+:-------------------------------------------------
+: RSS item のURLを出力
+:  (in) U:設定領域先頭、Z:パス
+:-------------------------------------------------
+^RssURL
+   $*=U+128 $*=Z
+]
+:
+:-------------------------------------------------
+: RSS item のURLを出力
+:  (in) U:設定領域先頭、Z:パス
+:-------------------------------------------------
+^RssURL2
+   !=^RssURL "?GroupList&amp;group="
+]
+:
+:-------------------------------------------------
+: 日時を表示
+:  (in) e:UNIX時間 Q:バッファ
+:-------------------------------------------------
+^PageTime
+   +ts
+   t=e s=Q !=^LocalTime
+   ?=s{5} "/" ?[2]=s{4} "/" ?[2]=s{3} " "
+   ?[2]=s{2} ":" ?[2]=s{1} ":" ?[2]=s{0}
+   -st
+]
+:
+:-------------------------------------------------
+: グループ管理ファイルのパス名を設定
+:  (in)  x : バッファアドレス
+:  (out) x : groups.txt のパス文字列を設定
+:-------------------------------------------------
+^PathGroups
+   +pu
+   p=x u=U+64
+   p*=u p=p+%
+   p*="groups.txt"
+   -up
+]
+:
+:-------------------------------------------------
+: CSSファイルのパス名を設定
+:  (in)  x : バッファアドレス
+:  (out) x : rvtlwiki.css のパス文字列を設定
+:-------------------------------------------------
+^PathCSS
+   +p
+   p=x
+   p*=U p=p+%
+   p*="rvtlwiki.css"
+   -p
+]
+:
+:-------------------------------------------------
+: ロゴファイルのパス名を設定
+:  (in)  x : バッファアドレス
+:  (out) x : rvtlwiki.png のパス文字列を設定
+:-------------------------------------------------
+^PathLogo
+   +p
+   p=x
+   p*=U p=p+%
+   p*="rvtlwiki.png"
+   -p
+]
+:
+:-------------------------------------------------
+: 使用法ファイルのパス名を設定
+:  (in)  x : バッファアドレス
+:  (out) x : rvtlwiki.dat のパス文字列を設定
+:-------------------------------------------------
+^PathHelp
+   +p
+   p=x
+   p*=U p=p+%
+   p*="rvtlwiki.dat"
+   -p
+]
+:
+:-------------------------------------------------
+: フロントページファイルのパス名を設定
+:  (in)  x : バッファアドレス
+:  (out) x : frontpage.dat のパス文字列を設定
+:-------------------------------------------------
+^PathFront
+   +p
+   p=x
+   p*=U p=p+%
+   p*="frontpage.dat"
+   -p
+]
+:
+:-------------------------------------------------
+:  Readering Wiki File Wikiファイルの出力
+:  子プロセスを起動してhtml変換
+:     (in) x : ファイル名
+:    ^Preview
+:    ^StorePage
+:-------------------------------------------------
+^RenderWikiText
+   +xzbfgh
+   b=z z=z+256
+   f=z z=z+256
+   g=z z=z+256
+   h=z z=z+256
+   b*="/usr/bin/rvtlw render.cgi - "
+   |ve ;=%<0 b*="./render.elf.cgi "
+   y=h h*=x                   : y="file.txt"
+   f*=x                       : f="file.txt"
+   x=b !=^MergeStr            :/usr/bin/rvtlw render.cgi - file.txt
+   a=U['P'] s=g !=^ToStr      : page#
+   y*=" " !=^MergeStr
+   y=g    !=^MergeStr
+   y*=" " !=^MergeStr
+   y=g y*=" > " !=^MergeStr   : >
+   y=f !=^MergeStr            : file.txt
+   x(r-3)=0                   : 拡張子"txt"を除く
+   y*="dat" !=^MergeStr       : file.dat
+   ,*=b
+   -hgfbzx
+]
+:
+:-------------------------------------------------
+:  レンダリング済みhtmlファイルの出力
+:     (in) x : ファイル名
+:    ^DisplayPage
+:    ^FrontPage
+:    ^Preview
+:-------------------------------------------------
+^DispWikiText
+   |ca*=x
+]
+:
+:-------------------------------------------------
+: ページの表示
+:-------------------------------------------------
+^DisplayPage
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   a=r !=^PageDBSearch a=r
+   x=F[a*4+3]                         : title 指定
+   !=^HTMLHeader
+   x=Q                            : page 指定
+   !=^HTMLTools
+   "<h1>" $*=F[a*4+3] "</h1>"
+   x=Q !=^MakeDatName             : file名指定
+   !=^DispWikiText
+]
+:
+:-------------------------------------------------
+: 静的ページの表示
+:-------------------------------------------------
+^StaticPage
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   a=r !=^PageDBSearch a=r
+   x=F[a*4+3]                         : title 指定
+   !=^HTMLHeader
+   "<h1>" $*=F[a*4+3] "</h1>"
+   x=Q !=^MakeDatName             : file名指定
+   !=^DispWikiText
+]
+:
+:-------------------------------------------------
+: 追記用フォーム付のページ表示
+:-------------------------------------------------
+^Append
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   a=r b=r !=^PageDBSearch a=r
+   x=F[a*4+3]                         : title 指定
+   !=^HTMLHeader
+   x=Q                            : page 指定
+   !=^HTMLTools
+   "<h1>" $*=F[a*4+3] " - 追記</h1>"
+   "[<a href='#append'> 追記にジャンプ</a>]<br />"
+   x=Q !=^MakeDatName             : file名指定
+   !=^DispWikiText
+   / "<a name='append'><a>" / "<div id='comment'>" /
+   "<form action='" $*=Z " method='post' >" / "<fieldset>"
+   "<input type=hidden name=page value='" ?=b "'>" /
+   "<strong>追記</strong><small>"
+   " − ここに書いた文は、このページの最後に追加されます。"
+   "</small>" /
+   "<input type=submit name='message' value='書き込み' ><br />" /
+   "<textarea cols='80' rows='8' name='msg' >" /
+   "</textarea><br />" /
+   "</fieldset>" / "</form>" / "</div>" /
+   "<p>" "</p>" /
+]
+:
+:-------------------------------------------------
+: 新規ページの作成
+:-------------------------------------------------
+^CreatePage
+   x=B
+   x*="新規ページの作成"          : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>新規ページの作成</h1>"
+   !=^GroupDBRead
+   "<p>"
+   " <form action='" $*=Z "' method='post'>" /
+   " <strong>ページ分類を指定してください。</strong><br /> " /
+   i=0,O-1
+     "<input type=radio name=group id='group"
+     ?=V[i*4+2] "' value='" ?=V[i*4+2]
+     "<label for='group" ?=V[i*4+2] "'>" $*=V[i*4+3] "</label><br />" /
+   @=i+1
+   "  <br />" /
+   " <strong>新しいページの名前を入力してください。</strong><br /> " /
+   " <input type='text' name='newpage' value='' size='32'>" /
+   " <input type='submit' value='新規作成'><br />" /
+   "</form>" /
+   "</p>" /
+   !=^PageDBRead
+   !=^GroupDBRead
+   !=^GroupDBList
+]
+:
+:-------------------------------------------------
+: 新規ページの作成後の表示
+:-------------------------------------------------
+^NewPage
+   +Sz
+   S=z z=z+256
+   x=B
+   x*="新規ページ作成"            : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>新規ページ作成</h1>"
+   B*="group=" x=B y=R !=^GetPost
+   x=R !=^ToVal a=r
+   x=B !=^PathPages S*=B !=^LockWait
+   ;=r<0 "<p>ファイルがロックされています</p>" -zS ]
+   !=^PageDBRead
+   x=Q !=^RegistPage
+   !=^GroupDBRead
+   a=0 b=1 c=0                    : 更新日付降順
+   !=^PageDBList
+   !=^PageDBWrite
+   x=S !=^Unlock
+   -zS
+]
+:
+:-------------------------------------------------
+: 新規グループの作成
+:-------------------------------------------------
+^CreateGroup
+   x=B
+   x*="新規ページ分類の作成"          : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>新規ページ分類の作成</h1>"
+   "<p>"
+   "<form action='" $*=Z "' method='post'>" /
+   "  <strong>新しいページ分類の名前を入力してください。
+   "  </strong><br /> " /
+   "  <input type='text' name='newgroup' value='' size='32'>" /
+   "  <input type='submit' value='新規作成'><br />" /
+   "</form>" /
+   "</p>" /
+   !=^PageDBRead
+   !=^GroupDBRead
+   !=^GroupDBList
+]
+:
+:-------------------------------------------------
+: 新規グループの作成後の表示
+:-------------------------------------------------
+^NewGroup
+   x=B
+   x*="新規ページ分類の作成"          : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>新規ページ分類の作成</h1>"
+   x=B !=^PathGroups !=^LockWait
+   ;=r<0 "<p>ファイルがロックされています</p>" ]
+   !=^PageDBRead
+   !=^GroupDBRead
+   x=Q !=^RegistGroup
+   !=^GroupDBList
+   !=^GroupDBWrite
+   x=B
+   !=^Unlock
+]
+:
+:-------------------------------------------------
+: 一覧の表示
+:-------------------------------------------------
+^IndexPage
+   x=B
+   x*="ページ一覧"                : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>ページ一覧</h1>"
+   !=^PageDBRead
+   !=^GroupDBRead
+   a=1 b=0 c=0                    : グループ昇順
+   !=^PageDBList
+]
+:
+:-------------------------------------------------
+: フロントページの表示
+:-------------------------------------------------
+^FrontPage
+   x=U+768                        : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>目次</h1>"
+   x=B !=^PathFront !=^TextRead
+   x=B
+   !=^DispWikiText / "<hr />"
+   !=^GroupDBRead
+   !=^PageDBRead
+   !=^GroupDBList
+]
+:
+:-------------------------------------------------
+: 履歴ページの作成
+:-------------------------------------------------
+^RecentChanges
+   B*="count=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   c=r                            : 表示数
+   x=B
+   x*="更新履歴"                  : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   !=^PageDBRead
+   !=^GroupDBRead
+   "<h1>更新履歴</h1>"
+   "["
+   ;=(c>0)&(C>c) ?=c "件 / "    : 表示件数
+   ?=C "件] "               : すべての件数
+   ;=(c>0)&(C>c) "<a href='" $*=Z "?RecentChanges&count=0'>すべて表示</a>"
+   /
+   a=0 b=1                        : 更新日付降順
+   !=^PageDBList
+]
+:
+:-------------------------------------------------
+: ページの編集
+:-------------------------------------------------
+^Edit
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   a=r !=^PageDBSearch a=r
+   x=F[a*4+3]                         : title 指定
+   !=^HTMLHeader
+   x=Q                            : page 指定
+   !=^HTMLTools
+   "<h1>" $*=F[a*4+3] " - の編集</h1>"
+   B*=Q                           : Page# をBにコピー
+   x=Q !=^MakePathName
+   "<form action='" $*=Z "' method='post' >" /
+   "<input type=hidden name='time' value='" ?=F[a*4+0] "'>" /
+   "<input type=hidden name='page' value='" $*=B "'>" /
+   "<input type=submit name='preview' value='プレビュー' >" /
+   "<input type=submit name='store' value='保存する' ><br />" /
+   "<textarea cols='" ?=U['W'] "' rows='"
+   ?=U['H'] "' name='msg' >" /
+   |ca*=x                         : ファイルを cat
+   "</textarea><br />" /
+   "</form>" /
+   "<p>" "</p>" /
+   x=B !=^PathHelp
+   |ca*=B
+]
+:
+:-------------------------------------------------
+: プレビューの表示
+:-------------------------------------------------
+^Preview
+   +fz
+   f=z z=z+256
+   x*="Preview"                       : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>ページのプレビュー</h1>"
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal  U['P']=r
+   a=r !=^PageDBSearch n=r
+   !=^GetMsg
+   {=s }=s+r
+   R*=Q x=Q B*="p" y=B !=^MergeStr
+   f*=Q !=^MakePathName
+   (*=x                               : テキスト書き込み
+   !=^RenderWikiText
+   x=f !=^MakeDatName                 : file名指定
+   !=^DispWikiText
+   :
+   "<form action='" $*=Z "' method='post' >" /
+   "<input type=hidden name=time value='" ?=F[n*4+0] "'>" /
+   "<input type=hidden name=page value='" $*=R "'>" /
+   "<input type=submit name='preview' value='プレビュー' >" /
+   "<input type=submit name='store' value='保存する' ><br />" /
+   "<textarea cols='" ?=U['W'] "' rows='"
+   ?=U['H'] "' name='msg' >" /
+   x=Q |ca*=x          : ファイルを cat
+   "</textarea><br />" /
+   "</form>" /
+   -zf
+]
+:
+:-------------------------------------------------
+: ページの保存結果の表示
+:-------------------------------------------------
+^StorePage
+   +qSz
+   S=z z=z+256
+   q=z z=z+256
+   x=B !=^PathPages S*=B !=^LockWait
+   ;=r<0 "<p>ファイルがロックされています</p>" -zSq ]
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost      : page #
+   q*=Q
+   x=Q !=^ToVal
+   U['P']=r
+   a=r !=^PageDBSearch n=r
+   B*="time=" x=B y=R !=^GetPost      : タイムスタンプ
+   x=R !=^ToVal t=r
+   x=F[n*4+3]                         : title 指定
+   !=^HTMLHeader
+   x=Q                                : page 指定
+   !=^HTMLTools
+   "<h1>" $*=F[n*4+3] "</h1>"
+:
+   ;=F[n*4+0]=t #=^sp00
+      "<strong><p>ページが変更されています。保存されませんでした。<br />"
+      "戻るボタンで戻って、編集内容をコピーして保存した後、"
+      "変更履歴からもう一度ページを編集してください。</p></strong>"
+      #=^sp01
+:
+   ^sp00
+   !=^GetMsg
+   {=s }=s+r
+   x=Q !=^MakePathName
+   (*=x                               : テキスト書き込み
+   !=^RenderWikiText
+   a=n !=^UpdatePageTime
+   !=^PageDBWrite                     : ページDB書き込み
+:
+   ^sp01
+   x=S
+   !=^Unlock                          : アンロック
+   x=q !=^MakeDatName                 : file名指定
+   !=^DispWikiText
+   -zSq
+]
+:
+:-------------------------------------------------
+: コメントの最下部への追加
+:-------------------------------------------------
+^DoAppend
+   +qSz
+   S=z z=z+256
+   q=z z=z+256
+   x=B !=^PathPages S*=B !=^LockWait
+   ;=r<0 "<p>ファイルがロックされています</p>" -zSq ]
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost      : page #
+   q*=Q
+   x=Q !=^ToVal
+   U['P']=r
+   a=r !=^PageDBSearch n=r
+   x=F[n*4+3]                         : title 指定
+   !=^HTMLHeader
+   x=Q                                : page 指定
+   !=^HTMLTools
+   "<h1>" $*=F[n*4+3] "</h1>"
+   x=Q !=^MakePathName
+   : 最下部に挿入
+   !=^TextRead                        : 既存テキスト読み込み
+   a=r
+   w=T+r                              : テキスト最終
+   w(0)=10 w(1)=0 w=w+1               : 改行挿入
+   w*="----" w=w+%                    : <hr /> 文法に依存
+   w(0)=10 w(1)=0 w=w+1               : 改行挿入
+   t=_ s=R !=^TimeStr                 : 現在時刻の文字列
+   w*="-" w=w+%                       : <ul> 文法に依存
+   w*=s w=w+%                         : 時刻の挿入
+   w(0)=10 w(1)=0 w=w+1               : 改行挿入
+   !=^GetMsg                          : Pの領域
+   w*=s w=w+%                         : テキストの追加
+   a=w-T                              : テキストサイズ設定
+:
+   !=^TextWrite                       : テキスト書き込み
+   !=^RenderWikiText
+   a=n !=^UpdatePageTime
+   !=^PageDBWrite                     : ページDB書き込み
+   x=S
+   !=^Unlock                          : アンロック
+:
+   x=q !=^MakeDatName                 : file名指定
+   !=^DispWikiText                    : 表示
+    -zSq
+]
+:
+:-------------------------------------------------
+: コメントの最上部への追加
+:-------------------------------------------------
+^DoTopAppend
+   +qSz
+   S=z z=z+256
+   q=z z=z+256
+   x=B !=^PathPages S*=B !=^LockWait
+   ;=r<0 "<p>ファイルがロックされています</p>" -zSq ]
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost      : page #
+   q*=Q
+   x=Q !=^ToVal
+   U['P']=r
+   a=r !=^PageDBSearch n=r
+   x=F[n*4+3]                             : title 指定
+   !=^HTMLHeader
+   x=Q                                : page 指定
+   !=^HTMLTools
+   "<h1>" $*=F[n*4+3] "</h1>"
+   x=Q !=^MakePathName
+   : 最上部に挿入
+   +T
+   t=_ s=R !=^TimeStr                 : 現在時刻の文字列
+   T*="-" T=T+%                       : <ul> 文法に依存
+   T*=s T=T+%                         : 時刻の挿入
+   T(0)=10 T(1)=0 T=T+1               : 改行挿入
+   !=^GetMsg                          : Pの領域
+   T*=s T=T+%                         : コメントの挿入
+   T(0)=10 T(1)=0 T=T+1               : 改行挿入
+   T*="----" T=T+%                    : <hr /> 文法に依存
+   T(0)=10 T(1)=0 T=T+1               : 改行挿入
+   x=Q
+   !=^TextRead                        : 既存テキスト読み込み
+   t=T+r
+   -T
+   a=t-T                              : テキストサイズ設定
+:
+   !=^TextWrite                       : テキスト書き込み
+   !=^RenderWikiText
+   a=n !=^UpdatePageTime
+   !=^PageDBWrite                     : ページDB書き込み
+   x=S
+   !=^Unlock                          : アンロック
+:
+   x=q !=^MakeDatName                 : file名指定
+   !=^DispWikiText                    : 表示
+    -zSq
+]
+:
+:-------------------------------------------------
+: グループタイトルなどの変更
+:-------------------------------------------------
+^ChangeGroup
+   x*="ページ分類名の変更"              : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>ページ分類名の変更</h1>"
+   !=^GroupDBRead
+   "<p>"
+   "<form action='" $*=Z "' method='post'>" /
+   "  <strong>ページ分類を指定してください。</strong><br /> " /
+   "  <select name='group'>" /
+   i=0,O-1
+     "    <option value='" ?=V[i*4+2] "'>" $*=V[i*4+3] "</option>" /
+   @=i+1
+   "  </select><br /><br />" /
+   "  <strong>新しいページ分類の名前を入力してください。</strong><br />" /
+   "  <input type='text' name='grouprename' value='' size='32'>" /
+   "  <input type='submit' name='NewGroupName' value='変更'><br />" /
+   "</form>" /
+   "</p>" /
+   !=^GroupDBRead
+   !=^PageDBRead
+   !=^GroupDBList
+]
+:
+:-------------------------------------------------
+: ページタイトルなどの変更
+:-------------------------------------------------
+^ChangePage
+   x*="ページ情報の変更"                   : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   a=r !=^PageDBSearch a=r
+   "<h1>ページ情報の変更</h1>"
+   !=^GroupDBRead
+   "<p>"
+   "<form action='" $*=Z "' method='post'>" /
+   "  <input type='hidden' name='page' value='" $*=Q "'>" /
+   "  <strong>ページ分類を指定してください。</strong><br /> " /
+   "  <select name='group'>" /
+   i=0,O-1
+     "    <option value='"  ?=V[i*4+2]  "'"
+     ;=(V[i*4+2]=F[a*4+2]) " selected"
+     ">" $*=V[i*4+3] "</option>" /
+   @=i+1
+   "  </select><br /><br />" /
+   "  <strong>変更するページの名前を入力してください。</strong><br /> " /
+   "  <input type='text' name='newname' value='" $*=F[a*4+3] "' size='32'>"
+   / "  <input type='submit' name='pagerename' value='変更'><br />" /
+   "</form>" /
+   "</p>" /
+   !=^GroupDBList
+]
+:
+:-------------------------------------------------
+: ページ名変更後の表示
+:-------------------------------------------------
+^DoPageRename
+   +Sz
+   S=z z=z+256
+   x*="ページ情報の変更"          : title 指定
+   !=^HTMLHeader
+   x=B !=^PathPages S*=B !=^LockWait
+   ;=r<0 "<p>ファイルがロックされています</p>" -zS ]
+   !=^PageDBRead
+   B*="page=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   a=r !=^PageDBSearch a=r        : a = index
+   !=^HTMLTools
+   "<h1>ページ情報を変更しました</h1>"
+   B*="newname=" x=B y=Q !=^GetPost
+   B*="group=" x=B y=R !=^GetPost
+   x=R !=^ToVal b=r               : b = group ID
+   x=Q !=^UpdatePage
+   !=^GroupDBRead
+   a=0 b=1 c=0                    : 更新日付降順
+   !=^PageDBList
+   !=^PageDBWrite
+   x=S
+   !=^Unlock
+   -zS
+]
+:
+:-------------------------------------------------
+: グループ名変更後の表示
+:-------------------------------------------------
+^DoGroupRename
+   +Sz
+   S=z z=z+256
+   x*="ページ分類名の変更"        : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>ページ分類名を変更しました</h1>"
+   x=B !=^PathGroups S*=B !=^LockWait
+   ;=r<0 "<p>ファイルがロックされています</p>" -zS ]
+   !=^GroupDBRead
+   B*="group=" x=B y=R !=^GetPost
+   x=R !=^ToVal a=r               : a = group ID
+   B*="grouprename=" x=B y=R !=^GetPost x=R
+   !=^UpdateGroup
+   !=^PageDBRead
+   !=^GroupDBList
+   !=^GroupDBWrite
+   x=S
+   !=^Unlock
+   -zS
+]
+:
+:-------------------------------------------------
+: グループに属するページの一覧
+:-------------------------------------------------
+^GroupList
+   x*="ページ一覧"                : title 指定
+   !=^HTMLHeader
+   !=^HTMLTools
+   "<h1>ページ一覧</h1>"
+   B*="group=" x=B y=Q !=^GetPost
+   x=Q !=^ToVal
+   a=r
+   !=^PageDBRead
+   !=^GroupDBRead
+   !=^GroupPageList
+]
+:
+:-------------------------------------------------
+: パス名の生成
+: x : 1234567890 --> x: ./pages/1234567890.txt
+:-------------------------------------------------
+^MakePathName
+   +zwx
+   w=z z=z+256
+   w*=U+64
+   y=x x=w       !=^MergeStr  : w=w+x
+   x=w y*=".txt" !=^MergeStr  : w=w+".txt"
+   -x
+   x*=w
+   -wz
+]
+:
+:-------------------------------------------------
+: パス名の生成
+: x : 1234567890 --> x: ./pages/1234567890.dat
+:-------------------------------------------------
+^MakeDatName
+   +zwx
+   w=z z=z+256
+   w*=U+64
+   y=x x=w       !=^MergeStr  : w=w+x
+   x=w y*=".dat" !=^MergeStr  : w=w+".dat"
+   -x
+   x*=w
+   -wz
+]
+:
+:-------------------------------------------------
+: テキストリード x=FileName, T=BufferTop
+: r=bytes read
+:-------------------------------------------------
+^TextRead
+   {=T
+   )*=x            : read file
+   r=}-{
+]
+:
+:-------------------------------------------------
+: テキストライト x=FileName, T=BufferTop a=size
+: r=bytes wrote
+:-------------------------------------------------
+^TextWrite
+   {=T }=T+a
+   (*=x            : write file
+   r=}-{
+]
+:
+:-------------------------------------------------
+: ページ管理ファイルリード
+: ページ管理DB作成
+:-------------------------------------------------
+^PageDBRead
+   +zbxpqijZ
+   b=z z=z+256
+   {=A
+   x=b !=^PathPages
+   )*=b                           : read pages.txt
+   Z=}-{
+:
+   p=A
+   q=D
+   i=0
+   ;=Z<20 #=^pdb00
+   @
+       x=p !=^ToVal F[i*4+1]=r
+       @ p=p+1 @=(p(0)=9) p=p+1   : pをTABの次へ
+       x=p !=^ToVal F[i*4+0]=r
+       @ p=p+1 @=(p(0)=9) p=p+1   : pをTABの次へ
+       x=p !=^ToVal F[i*4+2]=r
+       @ p=p+1 @=(p(0)=9) p=p+1   : pをTABの次へ
+       F[i*4+3]=q
+       :
+       : タイトルをD()にコピー
+       j=0
+       @
+         q(j)=p(j)
+         j=j+1
+       @=(p(j-1)<' ')
+       q(j-1)=0
+       q=q+j
+       p=p+j
+       i=i+1
+   @=(p>=(A+Z))
+   ^pdb00
+   C=i
+   -Zjiqpxbz
+]
+:
+:-------------------------------------------------
+: ページ管理DBに登録
+: a にグループNo
+: x にページタイトル
+:-------------------------------------------------
+^RegistPage
+   !=^CheckSpace ;=%=0 ]     : 名前長が０
+   +tzywgx
+   g=a
+   w=z z=z+256
+   y=z z=z+256
+   F[C*4+1]=_
+   a=F[C*4+1] s=B !=^ToStr w*=s
+   x=B !=^MakePathName
+   {=T
+   }=T
+   (*=x                     : xxx.txt
+   x=w !=^MakeDatName
+   (*=x                     : xxx.dat
+   F[C*4+0]=F[C*4+1]
+   F[C*4+2]=g
+   ;=C>0 t=F[(C-1)*4+3]
+   ;=C>0 @ t=t+1 @=(t(0)=0) t=t+1
+   ;=C>0 F[C*4+3]=t
+   ;=C=0 F[3]=D t=D
+   -x
+   t*=x
+   C=C+1
+   -gwyzt
+]
+:
+:-------------------------------------------------
+: ページ管理DBを更新
+: a にインデックス、 b にグループNo
+: x にページタイトル
+:-------------------------------------------------
+^UpdatePage
+   !=^CheckSpace ;=%=0 ]     : 名前長が０
+   +t
+   F[a*4+2]=b
+   ;=C>0 t=F[(C-1)*4+3]
+   ;=C>0 @ t=t+1 @=(t(0)=0) t=t+1
+   ;=C>0 F[a*4+3]=t : 最後部に新規割り当て
+   ;=C=0 F[3]=D t=D
+   t*=x
+   -t
+]
+:
+:-------------------------------------------------
+: ページ管理DBのタイムスタンプを更新
+: a にインデックス
+:-------------------------------------------------
+^UpdatePageTime
+   F[a*4+0]=_
+]
+:
+:-------------------------------------------------
+: ページ管理DBリスト
+: ソート a=0:更新日付、1:グループ
+: 順序   b=0:昇順、    1:降順
+: 表示数 c=0:すべて    0以外:指定数
+:-------------------------------------------------
+^PageDBList
+   +ihn
+   n=C            : ソート
+   ;=n<2 #=^pdbl00
+   ;=a=0 h=0
+   ;=a=1 h=2
+   ;=b=0 !=^HeapSort4
+   ;=b=1 !=^HeapSort4d
+   ^pdbl00
+   "<table>" /
+   "<tr><th>ページタイトル</th><th>最終更新日付</th>"
+   "<th>ページ分類</th></tr>" /
+   ;=C=0 #=^pdbl01
+   ;=c=0 c=C
+   i=0,c-1
+     "<tr><td>"
+     "<a href='" $*=Z "?DispPage&page=" ?=F[i*4+1] "'>"
+     $*=F[i*4+3] "</a>"
+     "</td><td>" /
+     t=F[i*4+0] s=B !=^LocalTime
+     ?=s{5} "/" ?[2]=s{4} "/" ?[2]=s{3} " "
+     ?[2]=s{2} ":" ?[2]=s{1} ":" ?[2]=s{0}
+     "</td><td>"
+     a=F[i*4+2] !=^GroupDBSearch
+     $*=s  "</td></tr>"
+   @=i+1
+   ^pdbl01
+   "</table>" /
+   -nhi
+]
+:
+:-------------------------------------------------
+: ページ管理DB検索
+: a にファイル番号を渡す
+: r にインデックスを返す。r=-1 は未発見
+:-------------------------------------------------
+^PageDBSearch
+   +if
+   f=0
+   i=0
+   @
+     ;=F[i*4+1]=a f=1
+     i=i+1
+   @=((i>=C)|(f=1))
+   ;=i<=C r=i-1 -fi ]         : found
+   r=-1                       : not found
+   -fi
+]
+:
+:-------------------------------------------------
+: グループに属するページリスト
+: a にグループ番号
+:-------------------------------------------------
+^GroupPageList
+   +i
+   !=^GroupDBSearch "<h2>" $*=s "</h2>" /
+   "<table>" /
+   "<tr><th>ページタイトル</th><th>最終更新日付</th>"
+   "<th>ページ分類</th></tr>" /
+   ;=C=0 #=^gpl01
+   i=0,C-1
+     ;=F[i*4+2]<>a  #=^gpl00
+     "<tr><td>"
+     "<a href='" $*=Z "?DispPage&page=" ?=F[i*4+1] "'>"
+     $*=F[i*4+3] "</a>"
+     "</td><td>" /
+     t=F[i*4+0] s=B !=^LocalTime
+     ?=s{5} "/" ?[2]=s{4} "/" ?[2]=s{3} " "
+     ?[2]=s{2} ":" ?[2]=s{1} ":" ?[2]=s{0}
+     "</td><td>"
+     a=F[i*4+2] !=^GroupDBSearch
+     $*=s  "</td></tr>"
+     ^gpl00
+   @=i+1
+   ^gpl01
+   "</table>" /
+   -i
+:
+:-------------------------------------------------
+: ページ管理ファイル書き出し
+:-------------------------------------------------
+^PageDBWrite
+   +bpisz
+   b=z z=z+256
+   p=A
+   ;=C=0 #=^pdbw01
+   i=0,C-1
+     a=F[i*4+1] s=p !=^ToStr p=p+r p(0)=9 p=p+1
+     a=F[i*4+0] s=p !=^ToStr p=p+r p(0)=9 p=p+1
+     a=F[i*4+2] s=p !=^ToStr p=p+r p(0)=9 p=p+1
+     t=F[i*4+3]
+     p*=t p=p+% p(0)=10 p=p+1
+   @=i+1
+   {=A }=p
+   x=b !=^PathPages
+   (*=b                           : write pages.txt
+   ^pdbw01
+   -zsipb
+]
+:
+:-------------------------------------------------
+: グループ管理ファイルリード
+: グループ管理DB作成
+:-------------------------------------------------
+^GroupDBRead
+   +xZpqijbz
+   b=z z=z+256
+   {=X
+   x=b !=^PathGroups
+   )*=b                           : read groups.txt
+   Z=}-{
+   :
+   p=X
+   q=Y
+   i=0
+   ;=Z<20 #=^gdb00
+   @
+       x=p !=^ToVal V[i*4]=r      : 作成日付
+       @ p=p+1 @=(p(0)=9) p=p+1   : pをTABの次へ
+       x=p !=^ToVal V[i*4+1]=r    : 作成日付と同じ
+       @ p=p+1 @=(p(0)=9) p=p+1   : pをTABの次へ
+       x=p !=^ToVal V[i*4+2]=r    : ID
+       @ p=p+1 @=(p(0)=9) p=p+1   : pをTABの次へ
+       V[i*4+3]=q                 : 名前
+       :
+       : タイトルをY()にコピー
+       j=0
+       @
+         q(j)=p(j)
+         j=j+1
+       @=(p(j-1)<' ')
+       q(j-1)=0
+       q=q+j
+       p=p+j
+       i=i+1
+   @=(p>=(X+Z))
+   ^gdb00
+   O=i
+   -zbjiqpZx
+]
+:
+:-------------------------------------------------
+: グループ管理DBに登録
+: x にグループタイトル
+:-------------------------------------------------
+^RegistGroup
+   !=^CheckSpace ;=%=0 ]     : 名前長が０
+   +t
+   V[O*4]=_
+   V[O*4+1]=V[O*4]
+   V[O*4+2]=O
+   ;=O>0 t=V[(O-1)*4+3]
+   ;=O>0 @ t=t+1 @=(t(0)=0) t=t+1
+   ;=O>0 V[O*4+3]=t
+   ;=O=0 V[3]=D t=D
+   t*=x
+   O=O+1
+   -t
+]
+:
+:-------------------------------------------------
+: グループ管理ファイル書き出し
+:-------------------------------------------------
+^GroupDBWrite
+   +pibaz
+   b=z z=z+256
+   p=X
+   i=0,O-1
+     a=V[i*4]   s=p !=^ToStr p=p+r p(0)=9 p=p+1
+     a=V[i*4+1] s=p !=^ToStr p=p+r p(0)=9 p=p+1
+     a=V[i*4+2] s=p !=^ToStr p=p+r p(0)=9 p=p+1
+     t=V[i*4+3]
+     p*=t p=p+% p(0)=10 p=p+1
+   @=i+1
+   {=X }=p
+   x=b !=^PathGroups
+   (*=b                           : write groups.txt
+   -zabip
+]
+:
+:-------------------------------------------------
+: グループ管理ファイル検索
+: a にgroup ID
+: r にインデックス、s にグループ名アドレスを返す
+:-------------------------------------------------
+^GroupDBSearch
+   +if
+   i=0 f=0
+   @
+     ;=a=V[i*4+2] s=V[i*4+3] f=1
+     i=i+1
+   @=((i>=O)|f=1)
+   ;=f=0 r=-1 -fi ]
+   r=i-1
+   -fi
+]
+:
+:-------------------------------------------------
+: グループ管理DBリスト
+:-------------------------------------------------
+^GroupDBList
+   +tgeji
+   "<table>" /
+   "<tr><th>ページ分類</th><th>ページ数</th><th>最新日付</th></tr>" /
+   ;=O=0 #=^gdbl02
+   i=0,O-1
+     "<tr><td>"
+     "<a href='" $*=Z "?GroupList&group=" ?=V[i*4+2] "'>"
+     $*=V[i*4+3] "</a></td><td align='center'>"
+     g=0 e=0
+     ;=C=0 #=^gdbl01
+     j=0,C-1
+       ;=F[j*4+2]=V[i*4+2] g=g+1 ;=F[j*4+0]>e e=F[j*4+0]
+     @=j+1
+     ^gdbl01
+     ?=g
+     "</td><td>" /
+     t=e s=Q !=^LocalTime
+     ?=s{5} "/" ?[2]=s{4} "/" ?[2]=s{3} " "
+     ?[2]=s{2} ":" ?[2]=s{1} ":" ?[2]=s{0}
+     "</td></tr>"
+   @=i+1
+   ^gdbl02
+   "</table>" /
+   -ijegt
+]
+:
+:-------------------------------------------------
+: 名称が空白のみなら長さ 0 を返す
+:-------------------------------------------------
+^CheckSpace
+   +fki
+   x*=x k=%
+   i=0 f=0
+   @
+     ;=x(i)<>' ' f=1
+     i=i+1
+   @=((f=1)|(i>=k))
+   ;=f=0 %=0
+   -ikf
+]
+:
+:-------------------------------------------------
+: グループ管理ファイル検索
+: a にgroup ID
+: x に新グループ名
+:-------------------------------------------------
+^UpdateGroup
+   !=^CheckSpace ;=%=0 ]     : 名前長が０
+   +rst
+   t=V[(O-1)*4+3]
+   @ t=t+1 @=(t(0)=0) t=t+1
+   !=^GroupDBSearch
+   V[r*4+3]=t t*=x  : 最後部に新規割り当て
+   -tsr
+]
+:
+:-------------------------------------------------
+: Get Post Data
+: POST文字列中の x で示された文字列に続くデータを
+: y の示す領域にコピー
+: r にデータの文字数を返す
+:-------------------------------------------------
+^GetPost
+    !=^SearchPost             : r に文字列アドレス
+    ;=r=0 ]                   : 長さ0ならばreturn
+    x=r
+    y*=x r=%
+]
+:
+:-------------------------------------------------
+: Get Post Msg
+: POST文字列中の msg= に続くデータのアドレスを取得
+: s にデータの文字列先頭アドレスを返す
+: r にデータの文字数を返す
+:-------------------------------------------------
+^GetMsg
+    +x
+    B*="msg=" x=B
+    !=^SearchPost             : r に文字列アドレス
+    ;=r=0 -x ]                : 長さ0ならばreturn
+    x=r s=r
+    !=^StrLen
+    -x
+]
+:
+:-------------------------------------------------
+: HTML Header
+: x にタイトル
+:-------------------------------------------------
+^HTMLHeader
+  "<title>" $*=x "</title>" /
+  "<link rel='stylesheet' type='text/css' href='"
+  x=B !=^PathCSS $*=B
+  "' />" /
+  "</head>" / /
+  "<body class='normal'>" / "<!--  -->" //
+]
+:
+:-------------------------------------------------
+: Wiki Tools
+: x にページ
+:-------------------------------------------------
+^HTMLTools
+  / "<div id='menu'>" / "<ul>" /
+  "<li class='top'><a href='" $*=Z "?FrontPage'>目次</a></li>" /
+  ;=Mode='Disp' "<li><a href='" $*=Z "?Edit&page=" $*=x "'>編集</a></li>" /
+  ;=Mode='Disp' "<li><a href='" $*=Z "?Append&page=" $*=x "'>追記</a></li>" /
+  ;=Mode='Disp' "<li><a href='" $*=Z "?Static&page=" $*=x "'>静的</a></li>" /
+  ;=Mode='DoAp' "<li><a href='" $*=Z "?Edit&page=" $*=x "'>編集</a></li>" /
+  ;=Mode='DoAp' "<li><a href='" $*=Z "?Append&page=" $*=x "'>追記</a></li>" /
+  ;=Mode='Stor' "<li><a href='" $*=Z "?Edit&page=" $*=x "'>編集</a></li>" /
+  ;=Mode='Stor' "<li><a href='" $*=Z "?Append&page=" $*=x "'>追記</a></li>" /
+  "<li><a href='" $*=Z "?RecentChanges&count=" ?=U['R']
+    "'>更新履歴</a></li>" /
+  "<li><a href='" $*=Z "?IndexPage'>一覧</a></li>" /
+  "<li><a href='" $*=Z "?CreatePage'>新規ページ</a></li>" /
+  "<li><a href='" $*=Z "?CreateGroup'>新規ページ分類</a></li>" /
+  "<li><a href='" $*=Z "?ChangeGroup'>ページ分類変更</a></li>" /
+  ;=Mode='Disp' "<li><a href='" $*=Z "?ChangePage&page="
+  ;=Mode='Disp' $*=x "'>ページ変更</a>" /
+  ;=Mode='DoAp' "<li><a href='" $*=Z "?ChangePage&page="
+  ;=Mode='DoAp' $*=x "'>ページ変更</a>" /
+  ;=Mode='Stor' "<li><a href='" $*=Z "?ChangePage&page="
+  ;=Mode='Stor' $*=x "'>ページ変更</a>" /
+  ;=Mode='Frnt' "<li><a href='" $*=Z "?RSS"
+  ;=Mode='Frnt' "'>RSS</a>" /
+  "</ul>" / "</div>" / /
+]
+:
+:-------------------------------------------------
+: Read REMOTE_ADDR
+: r : IPアドレスを32ビット整数化
+:-------------------------------------------------
+^REMOTE_ADDR
+   +xszij
+   x=z z=z+32
+   s=z z=z+32
+   x*="REMOTE_ADDR="
+   !=^SearchEnv
+   r=0
+   i=0
+   @
+     j=0 r=r<<8
+     @
+       j=j*10+(s(i)-$30)
+       i=i+1
+     @=((s(i)='.')|(s(i)=0))
+     r=r|j
+     ;=(s(i)='.') i=i+1
+   @=(s(i)=0)
+   -jizxs
+]
+:
+:-------------------------------------------------
+: Set REMOTE_ADDR
+: in  s : バッファ先頭アドレス
+: in  a : 32ビット整数のIPアドレス
+: out s : IPアドレス文字列
+:-------------------------------------------------
+^SetADDR
+   +sabcde
+   b=a>>24
+   c=(a>>16)&$FF
+   d=(a>>8)&$FF
+   e=a&$FF
+   a=b !=^ToStr
+   s(r)='.'
+   a=c s=s+r+1 !=^ToStr
+   s(r)='.'
+   a=d s=s+r+1 !=^ToStr
+   s(r)='.'
+   a=e s=s+r+1 !=^ToStr
+   s(r)=0
+   -edcbas
+]
+:
+:-------------------------------------------------
+: Read REQUEST_METHOD
+: r='GET' or r='POST'
+:-------------------------------------------------
+^REQUEST
+   x*="REQUEST_METHOD="
+   !=^SearchEnv
+   r=s(0)
+]
+:
+:-------------------------------------------------
+: Get Query_String
+:
+: P() : QUERY_STRINGデータ
+: L[] : QUERYデータ文字列先頭配列
+: K   : QUERY_STRING文字列数
+:-------------------------------------------------
+^RequestGet
+    x*="QUERY_STRING=" s=W
+    !=^SearchEnv
+    x=W !=^StrLen
+    a=r
+    ;=r=0 #=^rg00
+    i=0,r-1
+      ;=W(i)='&' W(i)=0            : 文字列末
+    @=i+1
+    ^rg00
+    x=W s=P !=^URLDEC2             : 一括変換
+    L[0]=W                         : 先頭要素のアドレス
+    w=W
+    ;=r<=0 w(0)=0 K=j ]            : 20060516
+    i=0,r-1
+      c=P(i)
+      ;=c=0 w(0)=0 w=w+1 j=j+1 L[j]=w #=^rg_next : 行先頭の登録
+      ;=c>'>' w(0)=c w=w+1       #=^rg_next
+      ;=c='"' w*="&quot;" w=w+%  #=^rg_next
+      ;=c='<' w*="&lt;"   w=w+%  #=^rg_next
+      ;=c='>' w*="&gt;"   w=w+%  #=^rg_next
+      ;=c='&' w*="&amp;"  w=w+%  #=^rg_next
+      w(0)=c w=w+1
+      ^rg_next
+    @=i+1
+    w(0)=0 K=j                            : 要素の数
+]
+:
+:-------------------------------------------------
+: 標準入力からPOSTされた文字列を取得
+:
+: W : ワーク領域、URLデコード+サニタイズ済みを返す
+: P : POST文字列(URLデコード済み)保存
+: L : POSTデータ文字列先頭配列
+: K : POST文字列数
+:-------------------------------------------------
+^RequestPost
+    +wacxijrs
+    : CONTENT_LENGTH環境変数からデータ長を取得
+    x*="CONTENT_LENGTH=" s=W
+    !=^SearchEnv
+    x=s
+    !=^ToVal                       : データ長を数値化
+    ;=((r<0)|(r>(N*3))) r=0 #=^rp00
+    a=r x=W !=^SYSRead             : W にコピー
+    i=0,a-1
+      ;=W(i)='&' W(i)=0            : 文字列末
+    @=i+1
+   ^rp00
+    W(i)=0                         :
+    x=W s=P a=i !=^URLDEC2         : 一括変換
+    L[0]=W  P(r)=0                 : 先頭要素のアドレス
+    w=W j=0                        : W に戻す
+    i=0,r-1
+      c=P(i)
+      ;=c=0 w(0)=0 w=w+1 j=j+1 L[j]=w #=^rp_next : 行先頭の登録
+      ;=c>'>' w(0)=c w=w+1       #=^rp_next
+      ;=c='"' w*="&quot;" w=w+%  #=^rp_next
+      ;=c='<' w*="&lt;"   w=w+%  #=^rp_next
+      ;=c='>' w*="&gt;"   w=w+%  #=^rp_next
+      ;=c='&' w*="&amp;"  w=w+%  #=^rp_next
+      w(0)=c w=w+1
+      ^rp_next
+    @=i+1
+    w(0)=0
+    K=j                            : 要素の数
+    -srjixcaw
+]
+:
+:-------------------------------------------------
+: x に検索文字列を設定
+: L[]にPOST文字列(URL decoded)の行頭アドレス
+: K にデータ要素数
+: r にデータ先頭アドレスを返す (0 なら無し)
+:-------------------------------------------------
+^SearchPost
+    +yi
+    i=0
+    @
+      y=L[i]
+      !=^CompareStr
+      i=i+1
+    @=((r>0)|(i>K))
+    ;=r=0 -iy ]
+    r=y+r
+    -iy
+]
+:
+:-------------------------------------------------
+: x に検索文字列を設定
+: L[]に行頭アドレス、PにPOST文字列(URL decoded)
+: a にデータ長
+: r にデータ先頭アドレスを返す (0 なら無し)
+:-------------------------------------------------
+^SearchQuery
+    +yi
+    i=0
+    @
+      y=L[i]
+      !=^CompareStr
+      i=i+1
+    @=((r>0)|(i>a))
+    ;=r=0 -iy ]
+    r=y+r
+    -iy
+]
+:
+:-----------------------------------------
+: 環境変数を検索
+:
+: x と s に 領域を確保
+:   x="検索文字列"
+:   s に値の文字列を格納
+:   未発見なら r=0 s(0)=0
+:-----------------------------------------
+^SearchEnv
+    +if                       : 変数退避
+    [=0                       : 範囲チェックOnn
+    i=0
+    @
+      y=\\i                   : 環境変数
+      f=0
+      ;=y=0 f=1
+      ;=y<>0 ;=y(0)=0 f=1
+      ;=f=0 !=^CompareStr
+      i=i+1
+    @=((f=1)|(r>0))
+    ;=r=0 s(0)=0 -i ]
+    y=y+r i=0
+    +xy
+    x=y y=s
+    !=^CopyStr                : copy y to s
+    -yx
+    [=1                       : 範囲チェック ON
+    -fi                       : 変数復帰
+]
+:
+:-------------------------------------
+: 4バイト配列のヒープソート昇順
+: F[] のソート
+:  h=0:time, h=1:fname, h=2:GrNo, h=3:pointer
+: n に要素の個数
+:-------------------------------------
+^HeapSort4
+    +rkijf
+    f=F-16                    : F[0]=f[1]
+    k=n/2 r=n
+    i=k
+    @
+      k=i
+      !=^DownHeap4            : downheap(i,n)
+      i=i-1
+    @=(i<1)
+    i=r
+    @
+      k=1 j=i !=^HeapSwap4    : swap(1,i)
+      k=1 r=i-1 !=^DownHeap4  : downheap(1,i-1)
+      i=i-1
+    @=(i<2)
+    -fjikr
+]
+:
+:-------------------------------------
+: DownHeap (k, r) 昇順
+:-------------------------------------
+^DownHeap4
+    +krj
+   ^h4shift01
+    j=2*k
+    ;=j>r #=^h4shift02
+    ;=j<>r ;=f[(j+1)*4+h]>f[j*4+h] j=j+1
+    ;=f[k*4+h]>=f[j*4+h] #=^h4shift02
+    !=^HeapSwap4
+    k=j
+    #=^h4shift01
+   ^h4shift02
+    -jrk
+]
+:
+:-------------------------------------
+: 4バイト配列のヒープソート降順
+: F[] のソート
+: h=0:time, h=1:fname, h=2:GrNo, h=3:pointer
+: n に要素の個数
+:-------------------------------------
+^HeapSort4d
+    +rkijf
+    f=F-16
+    k=n/2 r=n
+    i=k
+    @
+      k=i
+      !=^DownHeap4d            : downheap(i,n)
+      i=i-1
+    @=(i<1)
+    i=r @
+      k=1 j=i !=^HeapSwap4    : swap(1,i)
+      k=1 r=i-1 !=^DownHeap4d  : downheap(1,i-1)
+      i=i-1
+    @=(i<2)
+    -fjikr
+]
+:
+:-------------------------------------
+: DownHeap (k, r) 降順
+:-------------------------------------
+^DownHeap4d
+    +krj
+   ^h4shift03
+    j=2*k
+    ;=j>r #=^h4shift02
+    ;=j<>r ;=f[(j+1)*4+h]<f[j*4+h] j=j+1
+    ;=f[k*4+h]<=f[j*4+h] #=^h4shift04
+    !=^HeapSwap4
+    k=j
+    #=^h4shift03
+   ^h4shift04
+    -jrk
+]
+:
+:-------------------------------------
+: 4バイト配列データのSwap
+: Swap (k, j)
+:-------------------------------------
+^HeapSwap4
+    +wjk
+    j=j-1 k=k-1     : F,E,G,Hの添え字は[0]から
+    w=F[j*4+1] F[j*4+1]=F[k*4+1] F[k*4+1]=w
+    w=F[j*4+0] F[j*4+0]=F[k*4+0] F[k*4+0]=w
+    w=F[j*4+2] F[j*4+2]=F[k*4+2] F[k*4+2]=w
+    w=F[j*4+3] F[j*4+3]=F[k*4+3] F[k*4+3]=w
+    -kjw
+]
+:
+:==========================================================================
+: 汎用ライブラリ
+:==========================================================================
+:-----------------------------------------
+: t に現在時刻 (UNIX時間1970/1/1 0:00:00
+: からの経過秒数)を渡す。t=_
+: 配列 s に時刻文字列を返す
+:-----------------------------------------
+^TimeStr
+    +zuvwx
+    u=z z=z+256
+    v=z z=z+256
+    !=^LocalTime
+    x=s s=v
+    w=u                                    : 文字列先頭を保存
+    a=x{5} !=^ToStr                        : year
+    u*=v   u=u+%
+    u*="/" u=u+%
+    ;=x{4}<=9 u*="0" u=u+%
+    a=x{4} !=^ToStr  u*=v u=u+%            : month
+    u*="/" u=u+%
+    ;=x{3}<=9 u*="0" u=u+%
+    a=x{3} !=^ToStr  u*=v u=u+%            : day
+    u*=" " u=u+%
+    ;=x{2}<=9 u*="0" u=u+%
+    a=x{2} !=^ToStr  u*=v u=u+%            : hour
+    u*=":" u=u+%
+    ;=x{1}<=9 u*="0" u=u+%
+    a=x{1} !=^ToStr  u*=v u=u+%            : min
+    u*=":" u=u+%
+    ;=x{0}<=9 u*="0" u=u+%
+    a=x{0} !=^ToStr  u*=v   u=u+%          : sec
+    s*=w
+    -xwvuz
+]
+:-----------------------------------------
+: t に現在時刻 (UNIX時間1970/1/1 0:00:00
+: からの経過秒数)を渡す。t=_
+: 2バイト配列 s に以下の情報を返す
+: s{0} : sec   0..59
+: s{1} : min   0..59
+: s{2} : hour  0..23
+: s{3} : day   0..31
+: s{4} : month 1..12
+: s{5} : year  1980-
+: s{6} : week day 0-6
+:-----------------------------------------
+^LocalTime
+    +myTdwxiMVz
+    m=z z=z+16
+    m(1)=31 m(2)=28 m(3)=31 m(4)=30 m(5)=31 m(6)=30
+    m(7)=31 m(8)=31 m(9)=30 m(10)=31 m(11)=30 m(12)=31
+    : 2*(4*365+1)*24*60*60+(2*365*24*60*60)|-(9*3600)
+    y=1980
+    :T=315532800 : 1980/1/1 00:00:00 UTC
+    T=315500400 : 1980/1/1 00:00:00 JST
+    t=t-T ;=t<0 t=0
+    t=t/60 s{0}=%                          : sec
+    t=t/60 s{1}=%                          : min
+    d=t/24 s{2}=%                          : hour
+    w=366+365+365+365                      : w=1461days/4years
+    x=d/w                                  : x=year*4
+    y=y+(x*4)
+    d=%                                    : days in 4years(0..1460)
+    ;=d<=365 m(2)=29 x=0 d=d               : leap year
+    ;=d>365 d=d-366 x=d/365 d=% x=x+1      : normal year
+    y=y+x                                  : year
+    i=1
+    @
+      ;=(d>=m(i)) d=d-m(i) i=i+1
+    @=(d<m(i))
+    M=i
+    s{5}=y s{4}=M s{3}=d+1
+    ;=(y<=2) y=y+12
+    V=(y+(y/4)-(y/100)+(y/400)+((13*M+8)/5)+d)/7 s{6}=%
+    -zVMixwdTym
+]
+:
+:-------------------------------------------------
+: 10進数文字列 --> 数値変換
+:
+: x から始まる文字列を数値に変更して
+: r に値を返す。
+:-------------------------------------------------
+^ToVal
+    +i
+    i=0
+    r=0
+    ;=(x(i)<'0')+(x(i)>'9') -i ]
+    @
+      r=r*10+(x(i)-$30)
+      i=i+1
+    @=((x(i)<'0')+(x(i)>'9'))
+    -i
+]
+:
+:-------------------------------------------------
+: 数値 --> 10進数文字列変換
+:
+: a の数値を文字列に変換して s からの領域に
+: 文字列として返す。
+: r に文字数を返す
+:-------------------------------------------------
+^ToStr
+    +aij
+    i=0
+    @
+      a=a/10 +=%  : スタックにプッシュ
+      i=i+1
+    @=(a=0)
+    j=0
+    @
+      i=i-1
+      s(j)=;+$30  : スタックからポップ
+      j=j+1
+    @=(i=0)
+    s(j)=0
+    r=j
+    -jia
+]
+:
+:-------------------------------------------------
+: 文字列長の取得
+:
+: x に文字列を指定、ｒに文字数が返る
+:-------------------------------------------------
+^StrLen
+   x*=x
+   r=%
+]
+:
+:-------------------------------------------------
+: 部分文字列の比較   length(x) <= length(y)
+:
+: x の示す文字列が y の示す文字列と一致したら
+: r=文字列末または初めて異なる文字の位置
+: 一致していなければ r=0 を返す
+:-------------------------------------------------
+^CompareStr
+    +if
+    i=-1
+    f=0
+    @
+      i=i+1
+      ;=(x(i)=y(i))&(x(i)=0) f=1  : 発見
+      ;=x(i)<>y(i) f=2            : 違う
+    @=((x(i)=0)|(f<>0))
+    ;=i>0 ;=f=1 r=i
+    ;=(x(i)=0)&(f=2)) r=i
+    ;=(x(i)<>0) r=0
+    -fi
+]
+:
+:-------------------------------------------------
+: Copy String
+:
+:  x() : string1 (source)
+:  y() : string2 (destinnation)
+: return
+:  r   : length
+:-------------------------------------------------
+^CopyStr
+    y*=x
+    r=%
+]
+:
+:-------------------------------------------------
+: Concatinate string
+:
+:  x() : string1 (<255byte)
+:  y() : string2 (<255byte)
+: return
+:  s() : string1+string2
+:  r   : length
+:-------------------------------------------------
+^ConcatStr
+   s*=x r=%
+   +s
+   s=s+r s*=y
+   -s
+   r=r+%
+]
+:
+:-------------------------------------------------
+: Merge string
+:
+:  x() : string1 (<255byte)
+:  y() : string2 (<255byte)
+: return
+:  x() : string1 + string2
+:  r   : length
+:-------------------------------------------------
+^MergeStr
+   !=^StrLen             : r = length(x)
+   +x
+   x=x+r
+   x*=y
+   r=r+%
+   -x
+]
+:
+:-------------------------------------
+: URLデコード
+:
+: x にURLエンコードした文字列を設定
+: s にデコード後の文字列を返す
+: r にデコード後の文字数を返す
+:-------------------------------------
+^URLDEC
+    +a
+    !=^StrLen
+    a=r
+    !=^URLDEC2
+    -a
+]
+:
+:-------------------------------------
+: URLデコード2
+:
+: x にURLエンコード文字列の先頭設定
+: a に変更範囲の文字数を設定
+: s にデコード後の文字列を返す
+: r にデコード後の文字数を返す
+:-------------------------------------
+^URLDEC2
+   +uz
+   u=z+16
+   u;0]=x u[2]=a u;2]=s
+   |ud
+   r=u[6]
+   -zu
+]
+:
+:-------------------------------------------------
+: symlink
+: x() : oldname
+: y() : newname
+:-------------------------------------------------
+^Symlink
+  +abc
+  |vc
+  k=%
+  ;=(k=5) a=36 b=x c=-100 d=y  : symlinkat (Arm64)
+  ;=(k=4) a=88 b=x c=y : symlink (x86_64)
+  |zz
+  r=|
+  -cba
+]
+:
+:-------------------------------------------------
+: unlink
+: x() : pathname
+:-------------------------------------------------
+^Unlink
+  +abcdk
+  |vc
+  k=%
+  ;=(k=5) a=35 b=-100 c=x d=0 : unlinkat (Arm64)
+  ;=(k=4) a=87 b=x        : unlink (x86_64)
+  |zz
+  r=|
+  -kdcba
+]
+:-------------------------------------------------
+: lock
+: x() : filename to be locked
+:-------------------------------------------------
+^Lock
+  +cyz
+  c=z z=z+256
+  y=z z=z+32
+  y*=".lock"
+  s=c               : to store x+y
+  !=^ConcatStr
+  y=s               : newname
+  !=^Symlink
+  -zyc
+]
+:
+:-------------------------------------------------
+: lock & wait
+: x() : filename to be locked
+: r=0 : success, r=-1 : failure
+:-------------------------------------------------
+^LockWait
+  +ie
+  i=0
+  @
+    "<!-- "
+    !=^Lock
+    " --->"
+    e=|
+    i=i+1
+    _=1000000       : 1 sec
+  @=((e>=0)|(i>2))
+  ;=e<0 r=-1 -ei ]
+  r=0
+  -ei
+]
+:
+:-------------------------------------------------
+: unlock
+: x() : filename to be unlocked
+:-------------------------------------------------
+^Unlock
+  +cyz
+  c=z z=z+256
+  y=z z=z+32
+  y*=".lock"
+  s=c               : to store x+y
+  !=^ConcatStr
+  x=s               : newname
+  !=^Unlink
+  r=|
+  -zyc
+]
+:
+:-------------------------------------------------
+: sys_read
+: x() : Buffer
+: a   : Size
+:-------------------------------------------------
+^SYSRead
+  +abcdik
+  i=0
+  d=a               : size
+  |vc
+  k=%
+  ;=(k=5) a=63      : read (Arm64)
+  ;=(k=4) a=0       : read (x86_64)
+  b=0               : stdin
+  @
+    c=x             : buffer
+    |zz
+    r=|
+    d=d-r
+    x=x+r
+  @=((r=0)|(r<0))
+  -kidcba
+]
+:
+:-----------------------------------------
+: 時間を測定するプログラムにマージして実行
+:   !=^TimerStart から !=^TimerStop の時間
+:   #=-1 の前に !=^TimerStop を置く事
+:   変数スタックに値を積むためすべての変数
+:   は影響を受けない。
+:-----------------------------------------
+:----------------------------------
+: 時間計測開始
+:----------------------------------
+^TimerStart
+    +=_  +=%
+]
+:
+:----------------------------------
+: 時間計測終了、経過時間表示
+:----------------------------------
+^TimerStop
+    -ut x=_ y=%
+    d=x-t f=y-u
+    ;=(f<0) d=d-1 f=f+1000000
+    "  time:" ?=d "." ?[6]=f "sec" /
+]
+
+#=1
+~
+

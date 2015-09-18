@@ -1,0 +1,339 @@
+/*
+ * rvtlwiki.css
+ */
+
+body.normal {
+    margin: .5em 1% .1em 1%;
+    background-color: #f8faff;
+    color: black;
+}
+
+div#menu ul li {
+    float:left;
+    padding: 3px 3px 3px 3px;
+    margin-bottom: 5px;
+    list-style-type: none;
+    background-color: #f3e3e3;
+    border-top: solid 1px #ff9393;
+    border-bottom: solid 1px #ff9393;
+    border-right: solid 1px #ff9393;
+}
+
+div#menu ul li.top{
+    border-left: solid 1px #ff9393;
+}
+
+div#menu ul li a {
+    color: black;
+    margin: 1px;
+    font-size: small;
+    background-color: #f3e3e3;
+    text-decoration: none;
+    padding: 2px;
+}
+
+div#menu ul li a:hover {
+    color: white;
+    margin: 1px;
+    font-size: small;
+    background-color: #0000a8;
+    text-decoration: none;
+    padding: 2px;
+}
+
+div#toc 
+    border: 1px dotted #555555;
+    padding: 3px;
+    margin-bottom: 5px;
+    background-color: #eeeeff;
+    font-size:small;
+    z-index: 2;
+}
+
+div#comment {
+    background-color: #ddddff;
+}
+div#main }
+
+}
+
+div#main fieldset {
+    margin-left: 200px;
+    z-index: 1;
+}
+
+div#footer {
+    clear: both;
+}
+
+p {
+    margin: 0em 2em 0em 2em;
+    line-height: 140%;
+}
+
+pre {
+    font-family: Osaka-mono, "Osaka-等幅", "ＭＳ ゴシック", monospace;
+    font-size: 14px;
+}
+
+
+li {
+    line-height: 120%;
+}
+
+dt {
+    margin-top: 1em;
+    margin-bottom: 0em;
+    margin-left: 1em;
+    font-weight:bold;
+    line-height: 120%;
+}
+
+dl {
+    margin-top: 0em;
+    margin-bottom: 0em;
+    margin-left: 1em;
+    line-height: 120%;
+}
+
+ul {
+    margin-top: 0em;
+    margin-bottom: 0em;
+    line-height: 120%;
+}
+
+hr {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+a {
+}
+
+a:link {
+    color: blue;
+    text-decoration: underline;
+}
+
+a:visited {
+    color: navy;
+    text-decoration: underline;
+}
+
+a:hover {
+    color: #ffffff;
+    background-color: #000088;
+    text-decoration: underline;
+}
+
+a img {
+    border: none;
+}
+
+h1 {
+    text-align: center;
+    border: #7478db 2px solid;
+    color: black;
+    background: #a8acff;
+    padding: .1em .5em .1em .5em;
+    margin: .2em 0 1em 0;
+    clear: both;
+}
+
+h2 {
+    text-align: left;
+    border: #7478db 1px solid;
+    color: black;
+    background: #a8acff;
+    padding: .1em .5em .1em .5em;
+}
+
+h3 {
+    text-align: left;
+    border-bottom: #7478db 1px solid;
+    color: black;
+    background: #a8acff;
+    padding: .1em .5em .1em .5em;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+h4 {
+    text-align: left;
+    border-left: #a8acff 20px solid;
+    color: black;
+    padding: .1em .5em .1em .5em;
+    margin-left: 1em;
+    margin-right: 3em;
+}
+
+h5 {
+    text-align: left;
+    border-left: #a8acff 40px solid;
+    color: black;
+    padding: .1em .5em .1em .5em;
+    margin-left: 2em;
+    margin-right: 3em;
+}
+
+.date {
+    font-family: monospace;
+}
+
+/* --( */
+pre.verbatim-soft {
+    background-color: ##f6faff;
+    border: #ccccff 1px solid;
+    padding: 1em 1em 1em 1em;
+    margin-left: 3em;
+    margin-right: 3em;
+}
+
+/* ---( */
+pre.verbatim-hard {
+    background-color: #f6f6ff;
+    border: #ccccff 1px solid;
+    padding: 1em 1em 1em 1em;
+    margin-left: 3em;
+    margin-right: 3em;
+}
+
+/* ----( */
+pre.verbatim-code {
+    background-color: white;
+    color: black;
+    border: silver 1px solid;
+    padding: 0.5em 1em 0.5em 1em;
+    margin-left: 4em;
+    margin-right: 4em;
+}
+
+/* -----( */
+pre.verbatim-screen {
+    background-color: black;
+    color: white;
+    border: gray 1px solid;
+    padding: 0.5em 1em 0.5em 1em;
+    margin-left: 5em;
+    margin-right: 5em;
+}
+
+/* table */
+table {
+    background: white;
+    border-collapse: collapse;
+    border: 1px solid #bbf;
+    border-width: 1;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    margin-left: 3em;
+}
+
+th {
+    margin: 1px;
+    padding: 5px;
+    background: #ddf;
+    border: 1px solid #bbf;
+}
+
+td {
+    margin: 1px;
+    padding: 5px;
+    background: white;
+    border: 1px solid #bbf;
+}
+
+/* quote */
+/* ''X'__'''' */
+span.red { color:red;}
+span.green { color:green;}
+span.blue { color:blue;}
+span.cyan { color:cyan;}
+span.magenta { color:magenta;}
+span.yellow { color:yellow;}
+span.white { color:white;}
+span.lgreen { color:lightgreen;}
+span.bblue { font-weight:bold; color:blue;}
+span.bgreen { font-weight:bold; color:green;}
+span.bcyan { font-weight:bold; color:cyan;}
+span.bred { font-weight:bold; color:red;}
+span.bmagenta { font-weight:bold; color:magenta;}
+span.byellow { font-weight:bold; color:yellow;}
+span.bwhite { font-weight:bold; color:white;}
+span.iblack { color:white; background-color:black;}
+span.iblue { color:white; background-color:blue;}
+span.igreen { color:white; background-color:green;}
+span.icyan { color:black; background-color:cyan;}
+span.ired { color:white; background-color:red;}
+span.imagenta { color:white; background-color:magenta;}
+span.iyellow { color:black; background-color:yellow;}
+span.iwhite { color:black; background-color:white;}
+
+/* quote */
+/* '' */
+span.quote1 {
+    font-weight:bold;
+    color: black;
+}
+
+/* ''' */
+span.quote2 {
+    font-weight:bold;
+    color: red;
+}
+
+/* for printer */
+
+@media print {
+    form {
+        display: none;
+    }
+
+    .header {
+        color: black;
+        border: none;
+        text-align: center;
+        /* font-size: large; */
+        margin-bottom: 1em;
+    }
+
+    h2 {
+        border: none;
+        border-bottom: #ccc 1px solid;
+        border-left: #ccc .5em solid;
+    }
+
+    h3 {
+        border: none;
+        border-bottom: #ccc 1px solid;
+    }
+
+    h4 {
+        border: none;
+    }
+
+    a:hover {
+        color: black;
+        text-decoration: none;
+    }
+
+    a {
+        text-decoration: none;
+    }
+
+    a.editlink {
+        display: none;
+    }
+
+    body.normal {
+        background-color: white;
+    }
+
+    .tools {
+        display: none;
+    }
+
+    p {
+        font-family: Serif;
+    }
+}

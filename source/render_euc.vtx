@@ -1,0 +1,762 @@
+#!/usr/bin/rvtlw
+
+:-------------------------------------------------------------
+: RvtlWiki (render.cgi)
+: version : 2.00 (32bit EUC) 2015/09/19
+: Copyright (C) 2005-2015
+:   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
+: & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
+:     RvtlWiki may be copied under the terms of the
+:     GNU General Public License.
+:------------------------------------------------------------
+   M=256              : 最大ページサイズ(KB)
+   *=*+(M*1024)       : メモリ拡張
+   z=&                : heap top
+   Y=z z=z+256        : Debug Switch
+   Z=z z=z+256        : Buffer
+   T=z z=z+(M*1024)   : text
+   K=0
+:
+   [=0                : 範囲チェックOFF
+   Y*=\2              : 時間計測オプション
+   ;=Y(0)<>0 !=^TimerStart
+   Z*=\0 x=Z          : Wikiテキストファイル名
+   !=^TextRead        : Wikiテキスト読み込み
+   x={ y=}            : テキストデータ範囲設定
+   !=^RendWikiData
+   ;=Y(0)<>0 "<hr /><p> " !=^TimerStop "</p><hr />" /
+   [=1
+   #=-1
+:
+:-------------------------------------------------
+: テキストリード x=FileName, T=BufferTop
+: r=bytes read
+:-------------------------------------------------
+^TextRead
+   {=T
+   )*=x            : read file
+   r=}-{
+]
+:
+:-------------------------------------------------
+: 部分文字列の比較   length(x) <= length(y)
+:
+: x の示す文字列が y の示す文字列と一致したら
+: r=文字列末または初めて異なる文字の位置
+: 一致していなければ r=0 を返す
+:-------------------------------------------------
+^CompareStr
+    +if
+    i=-1
+    f=0
+    @
+      i=i+1
+      ;=(x(i)=y(i))&(x(i)=0) f=1  : 発見
+      ;=x(i)<>y(i) f=2            : 違う
+    @=((x(i)=0)|(f<>0))
+    ;=i>0 ;=f=1 r=i
+    ;=(x(i)=0)&(f=2)) r=i
+    ;=(x(i)<>0) r=0
+    -fi
+]
+:
+:-----------------------------------------
+: 時間を測定するプログラムにマージして実行
+:   !=^TimerStart から !=^TimerStop の時間
+:   #=-1 の前に !=^TimerStop を置く事
+:   変数スタックに値を積むためすべての変数
+:   は影響を受けない。
+:-----------------------------------------
+:----------------------------------
+: 時間計測開始
+:----------------------------------
+^TimerStart
+    +=_  +=%
+]
+:
+:----------------------------------
+: 時間計測終了、経過時間表示
+:----------------------------------
+^TimerStop
+    -UT X=_ Y=%
+    D=X-T F=Y-U
+    ;=(F<0) D=D-1 F=F+1000000
+    "  time:" ?=D "." ?[6]=F "sec" /
+]
+:
+:-------------------------------------------------
+: 文字列長の取得
+:
+: x に文字列を指定、ｒに文字数が返る
+:-------------------------------------------------
+^StrLen
+   x*=x
+   r=%
+]
+:
+:-------------------------------------------------
+: Copy String
+:
+:  x() : string1 (source)
+:  y() : string2 (destinnation)
+: return
+:  r   : length
+:-------------------------------------------------
+^CopyStr
+    y*=x
+    r=%
+]
+:
+:======================================================================
+: ----------------------------------------------------------
+:  Readering Wiki File Wikiファイルの出力
+:     (in) x : Wikiデータの開始アドレス
+:     (in) y : Wikiデータの終了アドレス
+: ----------------------------------------------------------
+^RendWikiData
+    +AEM
+    A=x E=y M=3000
+    !=^outputData
+    -MEA
+]
+:
+: ----------------------------------------------------------
+:  コメント欄の表示
+: ----------------------------------------------------------
+^PutComment
+   / "<div id='comment'>" /
+   "<form action='rvtlwiki.cgi' method='post' ><fieldset>" /
+   "<input type='hidden' name='page' value='" $*=\1 "'>" /
+   : "<legend></legend> " /
+   ;=K=1 "<small>コメント - ページの最上部に追加されます。</small>"
+   ;=K=1 "<input type=submit name='AddTop' value='書き込み' ><br />" /
+   ;=K=2 "<small> - ページの最下部に追加されます。</small>"
+   ;=K=2 "<input type='submit' name='AddBottom' value='書き込み'><br />"
+   "<textarea cols='80' rows='8' name='msg' >" /
+   "</textarea><br />" /
+   "</fieldset></form>" / "</div>"
+   "<p>" "</p>" /
+   Q=1
+]
+:
+: ----------------------------------------------------------
+:  Output Data データ出力
+:     (in) A : ファイルの先頭アドレス
+:     (in) E : ファイルの終了アドレス
+:     (in) M : 最大行数
+: ----------------------------------------------------------
+^outputData
+    +bcdfijlmpszBCDGHJLMPQSTUW
+    l=z z=z+(4*M)               : l[] 行頭アドレス
+    p=z z=z+(4*M)
+    s=z z=z+(4*M)               : s[] 行の文字数
+    m=z z=z+(1*M)               : m() モード
+    c=z z=z+(1*M)               : c() 見出しレベル、<pre>の種類など
+    v=z z=z+(1*M)               : v() スキャンフラグ
+    E=E+1 E(0)=10 B=0 D=0 G=0 T=0 U=0 V=0
+    i=0 j=0 f=0 M=0
+    :
+  :Wikiデータ全体をスキャンして行数、行先頭、行長などを求める
+    b=0 : pre内なら b>0
+    i=A,E                                 : 1文字ずつのループ
+      d=i(0)                              : 1文字取得
+      ;=(f=0) f=1 j=j+1 L=i v(j)=0        : j=行番号 L=行頭アドレス
+      ;=(d='[') ;=(i(1)='[') v(j)=1       : URL quote
+      ;=(d='h') ;=(i(1)='t') ;=(i(2)='t') ;=(i(3)='p') v(j)=1 : http発見
+      ;=(d=$27) ;=(i(1)=$27) v(j)=2       : '' 発見 (太字)
+      ;=(d=13) i(0)=0                     : CR なら 0 に置き換え
+      : 行末(LF)ならば 1行を解析し結果を行属性配列に保存
+      ;=(d=10) f=0 i(0)=0 W=M !=^analyze
+      ;=(d=10) l[j]=L p[j]=P s[j]=i-L m(j)=M c(j)=C
+    @=i+1
+    J=0 H=0
+    ;=K<>0 !=^PutComment : analyze でコメント記入欄出力
+  :目次の生成
+    / "<div id='toc'>" /
+    B=0
+    i=1,j
+        ;=(m(i)='B') B=1 : pre の内側は見出し無し
+        ;=(m(i)='b') B=0
+        ;=(m(i)='C')&(B=0) C=c(i) P=p[i] !=^setIndexRow
+    @=i+1
+    @
+      ;=C>0  .=C*2 "</ul>" / C=C-1
+    @=(C=0)
+    "</div>" / / "<div id='main'>" /
+  :出力
+    J=0 M=0
+    i=1,j                                 : 1行ずつのループ
+      W=M
+      L=l[i] P=p[i] S=s[i] M=m(i) C=c(i) Q=0 V=v(i)
+      !=^outputOneLine
+    @=i+1
+  :Clean Up
+    !=^setTableEndTag
+    !=^setDefEndTag
+    !=^setListEndTag
+    !=^setParaEndTag
+    !=^setCodeEndTag
+    "</div>" /
+  ^_outputData
+    -WUTSQPMLJHGDCBzspmljifdcb
+]
+:
+: ----------------------------------------------------------
+:  Analyze Line １行解析 (解析のみで出力はなし)
+:     (in) L : アクセス中の行の先頭アドレス
+:     (io) M : アクセス中の行のモード
+:     (io) W : 前のモード
+:     (io) C : カウンタ(Mの数値属性)
+:     (io) P : アクセス中の行のカーソル位置
+: ----------------------------------------------------------
+^analyze
+    +ic
+    M='G' C=0 c=0
+    : 行頭の1文字をチェック
+    ;=(L(0)='-') #=^_pre_hr                            : pre か hr
+    ;=b>0        #=^_endAnalyze           : pre 内なら行頭の記号は無視
+    ;=(L(0)=$a1)|(L(0)=$a2) #=^_jp_header              : 見出し
+    ;=(L(0)>'?') #=^_endAnalyze
+    ;=(L(0)=0)   M='E' #=^_endAnalyze                  : 空行
+    ;=(L(0)=' ') #=^_space #=^_endAnalyze              : 空白pre
+    ;=(L(0)='*') #=^_header                            : 見出し
+    ;=(L(0)=':') M='D' #=^_endAnalyze
+    ;=(L(0)='.') M='T' #=^_endAnalyze
+    ;=(L(0)=',') M='T' #=^_endAnalyze
+    ;=(L(0)='?') ;=(L(1)='T') K=1 M='M' #=^_endAnalyze : 先頭コメント
+    ;=(L(0)='?') ;=(L(1)='B') K=2 M='M' #=^_endAnalyze : 末尾コメント
+    #=^_endAnalyze
+  : <pre> または <hr /> または <ul>
+  ^_pre_hr
+    i=0 @ i=i+1 @=((L(i)<>'-')|(i>5))
+    : pre内で開始タグと同じレベルならばpre終了
+    ;=(L(i)=')')&(b=i) M='b' b=0 C=i #=^_endAnalyze
+    : pre タグ内ならば何もしない
+    ;=b>0 #=^_endAnalyze
+    : pre タグ内でなければ pre 開始
+    ;=(L(i)='(') M='B' b=i C=i #=^_endAnalyze
+    ;=L(i)='.' M='R' C=i #=^_endAnalyze                : 改行
+    ;=(i=4) M='L' C=i #=^_endAnalyze                   : 水平線
+    ;=(i<4) M='U' C=i #=^_endAnalyze                   : リスト
+    #=^_endAnalyze
+  : 見出し
+  ^_header
+    i=0 @ i=i+1 @=((L(i)<>'*')|(i>6))
+    ;=(i<7) M='C' C=i #=^_endAnalyze
+    #=^_endAnalyze
+  ^_jp_header
+    ;=(L(0)=$a1)&(L(1)=$fa) M='C' C=1 c=2 #=^_endAnalyze : EUC
+    ;=(L(0)=$a2)&(L(1)=$a3) M='C' C=2 c=2 #=^_endAnalyze
+    ;=(L(0)=$a1)&(L(1)=$fc) M='C' C=3 c=2 #=^_endAnalyze
+    ;=(L(0)=$a2)&(L(1)=$a1) M='C' C=4 c=2 #=^_endAnalyze
+    ;=(L(0)=$a2)&(L(1)=$a5) M='C' C=5 c=2 #=^_endAnalyze
+    ;=(L(0)=$a1)&(L(1)=$f9) M='C' C=6 c=2 #=^_endAnalyze
+    #=^_endAnalyze
+  : 空白
+  ^_space
+    i=0 @ i=i+1 @=((L(i)<>' ')|(i>4))
+    : 空白2つ以上で前がリストなら継続行
+    ;=(i>=2)&((W='U')|(W='u')) M='u' #=^_endAnalyze    : <li>の継続行
+    : 空白2つ以下なら通常行
+    ;=(i<3) #=^_endAnalyze
+    : 空白3つ以上なら整形済み(verbatim-code)
+    M='Y' C=2 #=^_endAnalyze
+  ^_endAnalyze
+    ;=c>0 P=L+c
+    ;=c=0 P=L+C
+    -ci
+]
+:
+: ----------------------------------------------------------
+:  OutPut One Line １行出力
+:     (in) L : アクセス中の行の先頭アドレス
+:     (in) M : アクセス中の行のモード
+:     (io) W : 直前の行のモード
+:     (in) S : アクセス中の行の長さ
+:     (io) P : アクセス中の行のカーソル位置
+:     (lc) Q : 行出力済みフラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^outputOneLine
+  :Clean Up
+    ;=(M<>'T') !=^setTableEndTag
+    ;=(M<>'D') !=^setDefEndTag
+    ;=(M<>'u') !=^setLIEndTag
+    ;=(M<>'U')&(M<>'u') !=^setListEndTag
+    ;=(M<>'G') !=^setParaEndTag
+    ;=(M<>'Y') !=^setCodeEndTag
+  :Main
+    : "(" $=M ")"
+    ;=(M='B') !=^setOpenVerb     #=^_outputOneLine
+    ;=(M='b') !=^setCloseVerb    #=^_outputOneLine
+    ;=(M='R') !=^setNewLine      #=^_outputOneLine
+    ;=(M='E')&(W='E') !=^setNewLine    #=^_outputOneLine
+    ;=(M='Y') !=^setCodeTag      #=^_outputOneLine
+    ;=(B)     P=L                #=^_outputOneLine
+    ;=(M='G') !=^setParaRow      #=^_outputOneLine
+    ;=(M='U') !=^setListItemRow  #=^_outputOneLine
+    ;=(M='u')&(B<2) !=^setListContinue #=^_outputOneLine
+    ;=(M='L') !=^setHoriRuleTag  #=^_outputOneLine
+    ;=(M='T') !=^setTableRow     #=^_outputOneLine
+    ;=(M='D') !=^setDefRow       #=^_outputOneLine
+    ;=(M='C') !=^setCaptionTag   #=^_outputOneLine
+    ;=(M='M') Q=1
+  ^_outputOneLine
+    ;=(Q=0) !=^outputLineData /
+]
+:
+: ----------------------------------------------------------
+:  行データの残りを標準出力に書き出し
+:     (in) V : URLなどが含まれていそうな行
+:     (in) P : アクセス中の行のカーソル位置
+: ----------------------------------------------------------
+^outputLineData
+    ;=(P(0)=0) #=^_outputLineData
+    ;=(V=0)|(B=3) $*=P #=^_outputLineData
+    @
+      ;=(V&2)<>0 ;=(P(0)=$27)&(P(1)=$27) !=^quoteString #=^old00
+      ;=(P(0)='[')&(P(1)='[')&(P(2)='[') !=^insertImg #=^old00
+      ;=(P(0)='[')&(P(1)='[') !=^quoteURL #=^old00
+      ;=(P(0)='h')&(P(1)='t')&(P(2)='t')&(P(3)='p') !=^quoteURL2 #=^old00
+      $=P(0)
+     ^old00
+      P=P+1
+    @=(P(0)=0)
+  ^_outputLineData
+]
+:
+: ----------------------------------------------------------
+: URL引用
+:  (in) P : 候補文字列の先頭
+: ----------------------------------------------------------
+^quoteURL
+    +tu
+    t=P+2
+    u=t-1
+    @ u=u+1 @=((u(0)='|')|(u(0)=']')|(u(0)=0))
+    u=u+1 ;=u(-1)=']' "[" -tu ]
+    "<a href='"
+    @ $=u(0) u=u+1 @=((u(0)=']')|(u(0)=0))
+    u=u+1
+    "'>"
+    @ $=t(0) t=t+1 @=((t(0)='|')|(t(0)=0))
+    "</a>"
+    P=u
+    -ut
+]
+:
+: ----------------------------------------------------------
+: http: から空白の前までをリンクとして出力
+: (in) P : 候補文字列の先頭
+: ----------------------------------------------------------
+^quoteURL2
+    +pi
+    p=P+4
+    ;=p(0)<>':' "h" -ip ]
+    p=p+1
+    "<a href='http:"
+    @
+      $=p(0)
+      p=p+1
+    @=((p(0)=' ')|(p(0)=0))
+    "'>"
+    i=P
+    @
+      $=i(0)
+      i=i+1
+    @=(i=p)
+    "</a>"
+    P=p
+    -ip
+]
+:
+: ----------------------------------------------------------
+: 画像挿入
+:  (in) P : 候補文字列の先頭
+:  (in) E : テキスト最終位置
+: ----------------------------------------------------------
+^insertImg
+    +t
+    t=P+3
+    "<img alt='"
+    @ $=t(0) t=t+1 @=((t(0)='|')|(t(0)=0))
+    t=t+1
+    "' src='"
+    @ $=t(0) t=t+1 @=((t(0)=']')|(t(0)=0))
+    "'>"
+    P=t+2
+    -t
+]
+:
+: ----------------------------------------------------------
+: quote
+:  (in) P : 候補文字列の先頭
+:  (in) E : テキスト最終位置
+: ----------------------------------------------------------
+^quoteString
+    +pc
+    p=P+2
+    ;=p(1)=$27) c=p(0) #=^ColorString
+    ;=p(0)=$27 #=^quote2String
+    "<span class='quote1'>"
+    @
+      $=p(0)
+      p=p+1
+    @=(((p(0)=$27)&(p(1)=$27))|(p(0)=0))
+    "</span>"
+    P=p+1
+    -cp
+]
+^quote2String
+    p=P+3
+    "<span class='quote2'>"
+    @
+      $=p(0)
+      p=p+1
+    @=(((p(0)=$27)&(p(1)=$27)&(p(2)=$27))|(p(0)=0))
+    "</span>"
+    P=p+2
+    -cp
+]
+: 文字色の指定用 span ''c' ____ ''''
+^ColorString
+    p=P+4
+    ;=c='r' "<span class='red'>"    #=^_ColorString
+    ;=c='g' "<span class='green'>"  #=^_ColorString
+    ;=c='b' "<span class='blue'>"   #=^_ColorString
+    ;=c='c' "<span class='cyan'>"   #=^_ColorString
+    ;=c='m' "<span class='magenta'>" #=^_ColorString
+    ;=c='y' "<span class='yellow'>" #=^_ColorString
+    ;=c='w' "<span class='white'>"  #=^_ColorString
+    ;=c='0' "<span class='bblack'>" #=^_ColorString
+    ;=c='1' "<span class='bblue'>"  #=^_ColorString
+    ;=c='2' "<span class='bgreen'>" #=^_ColorString
+    ;=c='3' "<span class='bcyan'>"  #=^_ColorString
+    ;=c='4' "<span class='bred'>"   #=^_ColorString
+    ;=c='5' "<span class='bmagenta'>" #=^_ColorString
+    ;=c='6' "<span class='byellow'>" #=^_ColorString
+    ;=c='7' "<span class='bwhite'>" #=^_ColorString
+    ;=c='9' "<span class='lgreen'>" #=^_ColorString
+    ;=c='B' "<span class='iblue'>"  #=^_ColorString
+    ;=c='G' "<span class='igreen'>" #=^_ColorString
+    ;=c='C' "<span class='icyan'>"  #=^_ColorString
+    ;=c='R' "<span class='ired'>"   #=^_ColorString
+    ;=c='M' "<span class='imagenta'>" #=^_ColorString
+    ;=c='Y' "<span class='iyellow'>" #=^_ColorString
+    ;=c='L' "<span class='iblack'>" #=^_ColorString
+    ;=c='W' "<span class='iwhite'>"
+ ^_ColorString
+    @
+      $=p(0)
+      p=p+1
+    @=(((p(0)=$27)&(p(1)=$27)&(p(2)=$27)&(p(3)=$27))|(p(0)=0))
+    "</span>"
+    P=p+3
+    -cp
+]
+:
+: ----------------------------------------------------------
+:  Set Horizontal Rule Tag <hr />の出力
+:     (in) L : アクセス中の行の先頭アドレス
+:     (io) P : アクセス中の行のカーソル位置
+:     (io) Q : 行出力済みフラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setHoriRuleTag
+    ;=P(0) P=L #=^_setHoriRuleTag
+    "<hr />" /
+    Q=1
+  ^_setHoriRuleTag
+]
+:
+: ----------------------------------------------------------
+:  Set Table End Tag </table>の出力
+:     (io) T : テーブルの作成中フラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setTableEndTag
+    ;=T "</table>" / T=0
+]
+:
+: ----------------------------------------------------------
+:  Set Definition List End Tag </dl>の出力
+:     (io) D : 定義リストの作成中フラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setDefEndTag
+    ;=D "</dl>" / D=0
+]
+:
+: ----------------------------------------------------------
+:  Set Paragraph Row 段落行の出力
+:     (io) G : 段落の作成中フラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setParaRow
+    ;=(G=0) "<p>" / G=1
+    !=^outputLineData /
+    Q=1
+]
+:
+: ----------------------------------------------------------
+:  Set Paragraph End Tag </p>の出力
+:     (io) G : 段落の作成中フラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setParaEndTag
+    ;=G "</p>" / G=0
+]
+:
+: ----------------------------------------------------------
+:  Set Pre End Tag </pre>の出力
+:     (io) W : 前のタグ
+: ----------------------------------------------------------
+^setCodeEndTag
+    ;=W='Y' "</pre>" /
+]
+:
+: ----------------------------------------------------------
+:  Set List Item Row <li>行の出力
+:     (io) Q : 行出力済みフラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setListItemRow
+    ;=(C<>U) !=^setListStartTag
+    ;=(W='u') "</li>" /
+    "<li>"
+    R=1
+]
+:
+: ----------------------------------------------------------
+:  Set List Item 継続行の出力
+:     (io) Q : 行出力済みフラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setListContinue
+    R=1
+]
+:
+: ----------------------------------------------------------
+:  Set List End Tag </pre>の出力
+:     (io) W : 前のタグ
+: ----------------------------------------------------------
+^setLIEndTag
+    ;=((W='U')|(W='u')) "</li>" / R=0
+]
+:
+: ----------------------------------------------------------
+:  Set List Start Tag <ul>,</ul>の出力
+:     U :
+: ----------------------------------------------------------
+^setListStartTag
+    @
+      ;=(C>U) U=U+1 "<ul>" /
+      ;=(C<U) U=U-1 "</ul>" /
+    @=(C=U)
+]
+:
+: ----------------------------------------------------------
+:  Set List End Tag </ul>の出力
+:     U :
+: ----------------------------------------------------------
+^setListEndTag
+    ;=(U=0) #=^_setListEndTag
+    @
+      U=U-1 "</ul>" /
+    @=(U=0)
+  ^_setListEndTag
+]
+:
+: ----------------------------------------------------------
+:  Set Verbatim Tag <pre>タグの出力
+:     (in) B :
+:     (in) C :
+:     (in) L : アクセス中の行の先頭アドレス
+:     (io) Q : 行出力済みフラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setOpenVerb
+    : "(pre " ?=B "," ?=C ")"
+    ;=((B>0)&(L(C)='(')) P=L #=^_setVerbTag
+    ;=((B=0)&(L(C)=')')) P=L #=^_setVerbTag
+    ;=((B>0)&(B<>C)) P=L #=^_setVerbTag
+    ;=(C=2) "<pre class='verbatim-soft'>"   B=C / Q=1 #=^_setVerbTag
+    ;=(C=3) "<pre class='verbatim-hard'>"   B=C / Q=1 #=^_setVerbTag
+    ;=(C=4) "<pre class='verbatim-code'>"   B=C / Q=1 #=^_setVerbTag
+    ;=(C=5) "<pre class='verbatim-screen'>" B=C / Q=1 #=^_setVerbTag
+  ^_setVerbTag
+]
+:
+^setCloseVerb
+    "</pre>" / B=0 Q=1
+]
+:
+^setNewLine
+    "<br />" Q=1 /
+]
+:
+: ----------------------------------------------------------
+:  Set Code Tag <pre>タグの出力
+:     (in) B :
+:     (in) C :
+:     (in) L : アクセス中の行の先頭アドレス
+:     (io) Q : 行出力済みフラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setCodeTag
+    ;=(W<>'Y')&(B=0) "<pre class='verbatim-code'>" /
+    !=^outputLineData /
+    Q=1
+]
+:
+: ----------------------------------------------------------
+:  Set Caption Tag <h?>タグの出力
+:     (in) C :
+:     (io) J :
+:     (io) Q : 行出力済みフラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setCaptionTag
+    / "<h" ?=C+1 "><a id='i" ?=J "'> </a>"
+    !=^outputLineData
+    "</h" ?=C+1 ">" /
+    J=J+1 Q=1
+]
+:
+: ----------------------------------------------------------
+:  Set Table Row テーブル行の出力
+:     L : アクセス中の行の先頭アドレス
+:     P : アクセス中の行のカーソル位置
+:     Q : アクセス中の行の出力終了 (YES or NO)
+:     S : アクセス中の行の長さ
+:     T : テーブルの作成中フラグ
+: ----------------------------------------------------------
+^setTableRow
+    ;=(T=0) "<table>" / T=1
+    :-----------------------------------------
+    :  c : colspan 算出
+    :  f : フィールド先頭検出用フラグ
+    :  h : THフラグ (YES/NO)
+    :  i : 行の処理中アドレス
+    :  b : 行先頭
+    :  p : フィールド先頭を記録
+    :  n : フィールド文字長
+    :-----------------------------------------
+    +cfhibpn
+    b=L h=0 f=1 n=0
+    ;=(b(0)='.') h=1
+    "<tr>"
+    : 1行を1フィールドづつ処理
+    p=b+1                           : "," または "."の次から
+    @
+      i=-1
+      @
+        i=i+1
+      @=((p(i)=0)|(p(i)=','))
+      p(i)=0
+      n=i                           : フィールド末位置を記録
+      !=^setTableCell               : pにフィールド先頭、iに文字数
+      p=p+i+1
+    @=(p>=(b+S))
+    "</tr>" /
+    Q=1                             : 行処理終了
+    -npbihfc
+]
+:
+: ----------------------------------------------------------
+: フィールドの連結(colspan)の検出
+: (in)  p : フィールド先頭
+: (in)  i : フィールド長
+: (in)  b+S : 行末のアドレス
+: (out) c : colspanの値
+: (out) i : 更新されたフィールド長
+: ----------------------------------------------------------
+^getColSpan
+    +xyz
+    c=1
+    ;=(p+n)=(b+S) #=^_getColSpan    : 最終フィールドならc=1で終了
+    x=z z=z+3
+    x*="=="
+    : "==" のフィールドがなくなるまで i を増加させて読み進める
+    @
+      y=p+i+1                       : 次フィールド先頭を比較
+      !=^CompareStr
+      ;=r=0 #=^gcp00                : 異なればループ脱出
+      i=i+r+1
+      @
+        ;=(p(i)=',')|(p(i)=0) f=1   : フィールド末まで進める
+        ;=f=0 i=i+1
+      @=(f=1)
+      c=c+1                         : colspan++
+      ^gcp00
+    @=((r=0)|(p(0)=0))
+  ^_getColSpan
+    -zyx
+]
+:
+: ----------------------------------------------------------
+: フィールドの連結(rowspan)の検出
+: (in)  p : フィールド先頭
+: (in)  i : フィールド文字数
+: (out) j : colspanの値
+: (out) i : フィールド文字数
+: ----------------------------------------------------------
+^getRowSpan
+    j=0
+    ;=p(j)<>'|' ]
+    j=0 @ j=j+1 @=(p(j)<>'|')
+    p=p+j i=i-j n=i
+]
+:
+: ----------------------------------------------------------
+: テーブルの1フィールド分のタグと内容を出力
+: (in) p : フィールド先頭
+: (in) c : colspan
+: (in) h : <th>フラグ
+: ----------------------------------------------------------
+^setTableCell
+    !=^getColSpan
+    !=^getRowSpan
+    +a
+    a=0                                     : アライン検出
+    ;=(p(0)=' ')    a=a+2                   : 左側に空白
+    ;=(p(n-1)=' ')  a=a+1                   : 右側に空白
+    ;=(h=1)         "<th"
+    ;=(h=0)         "<td"
+    ;=(a=2)         " align='right'"
+    ;=(a=3)         " align='center'"
+    ;=(c>1)         " colspan='" ?=c "'"
+    ;=(j>1)         " rowspan='" ?=j "'"
+    ">" P=p !=^outputLineData               : フィールド内容表示
+    ;=(h=1)         "</th>"
+    ;=(h=0)         "</td>"
+    -a
+]
+:
+: ----------------------------------------------------------
+:  Set Definition Row 定義リスト行の出力
+:     D : 定義リストの作成中フラグ (1:YES, 0:NO)
+: ----------------------------------------------------------
+^setDefRow
+    +ci
+    i=0 c=0
+    @
+      i=i+1
+      ;=(L(i)=':') L(i)=0 c=i
+    @=((L(i)=0)|(c>0))
+    ;=(c=0) !=^setDefEndTag P=L #=^_setDefRow
+    ;=(D=0) "<dl>" / D=1
+    P=L+1
+    "<dt>" !=^outputLineData "</dt>"
+    P=L+c+1
+    "<dd>" !=^outputLineData "</dd>" /
+    Q=1
+  ^_setDefRow
+    -ic
+]
+:
+: ----------------------------------------------------------
+:  目次の出力
+: ----------------------------------------------------------
+^setIndexRow
+    +i
+    ;=H<C .=C*2 "<ul>" /
+    ;=H>C i=C @ "</ul>" / i=i+1 @=(i=H)
+    .=C*2  "<li><a href='#i" ?=J "'>" !=^outputLineData "</a></li>" /
+    J=J+1
+    H=C
+    -i
+]
+:
+#=1
+~
+

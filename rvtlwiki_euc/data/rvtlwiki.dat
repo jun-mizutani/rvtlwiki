@@ -1,0 +1,265 @@
+<div id='toc'>
+  <ul>
+  <li><a href='#i0'>テキスト整形の基本ルール</a></li>
+    <ul>
+    <li><a href='#i1'>見出し</a></li>
+    <li><a href='#i2'>箇条書き、水平線、引用文</a></li>
+    <li><a href='#i3'>強制改行</a></li>
+    <li><a href='#i4'>画像挿入</a></li>
+    <li><a href='#i5'>テーブル</a></li>
+    <li><a href='#i6'>整形済み領域</a></li>
+    <li><a href='#i7'>ハイパーリンク</a></li>
+    <li><a href='#i8'>文字飾り</a></li>
+    <li><a href='#i9'>定義形式リスト</a></li>
+    <li><a href='#i10'>コメントフォーム</a></li>
+    </ul>
+  </ul>
+</div>
+
+<div id='main'>
+
+<h2><a id='i0'> </a>テキスト整形の基本ルール</h2>
+
+<p>
+基本的に入力した文字はそのまま出力されます。
+</p>
+<ul>
+<li> 連続した複数行は連結され、改行されません。
+</li>
+<li> 空行は段落の区切りとなります。
+</li>
+<li> 空行2行で改行 (&lt;br /&gt;) が挿入されます。
+</li>
+<li> HTMLのタグは単なる文字列(そのまま表示)となります。
+</li>
+</ul>
+
+<br />
+<p>
+以下のルールでテキストを入力すると色々な形式で表示することができます。
+</p>
+
+
+<h3><a id='i1'> </a>見出し</h3>
+<ul>
+<li> 行頭に * (アスタリスク)を書くと、続く文字列は大見出しになります。
+</li>
+<li> 行頭に ** を書くと、続く文字列は中見出しになります。
+</li>
+<li> 行頭に *** を書くと、続く文字列は小見出しになります。
+</li>
+<li> 行頭に **** を書くと、続く文字列は最小見出しになります。
+</li>
+<li> 見出しがあると自動的に目次が作られます。
+</li>
+<li> 見出し文字列の指定に、行頭に以下の日本語記号も使用可能
+</li>
+<ul>
+<li>   ★    &lt;h1&gt;
+</li>
+<li>   ■    &lt;h2&gt;
+</li>
+<li>   ●    &lt;h3&gt;
+</li>
+<li>   ◆    &lt;h4&gt;
+</li>
+<li>   ▲    &lt;h5&gt;
+</li>
+<li>   ☆    &lt;h6&gt;
+</li>
+</ul>
+</ul>
+
+
+<h3><a id='i2'> </a>箇条書き、水平線、引用文</h3>
+<ul>
+<li> マイナス(-)を行頭に書くと、箇条書きになります。- -- --- の3レベルがあります。
+</li>
+<li> マイナス4個(----)を行頭に書くと、水平線になります。
+</li>
+</ul>
+
+
+<h3><a id='i3'> </a>強制改行</h3>
+<ul>
+<li> 行頭を --. にすると改行 (&lt;br&gt;)が挿入されます。
+</li>
+</ul>
+
+
+<h3><a id='i4'> </a>画像挿入</h3>
+<p>
+以下の形式で画像ファイルを指定します。
+</p>
+<pre class='verbatim-hard'>
+[[[テキスト|URL]]]
+</pre>
+
+
+<h3><a id='i5'> </a>テーブル</h3>
+<ul>
+<li>ピリオド(.)を行頭に書くと、テーブル(表)のタイトル行になります。
+</li>
+<li>コンマ(,)を行頭に書くと、テーブル(表)が作成できます。
+</li>
+<li>セルの中に等号を２つ(==)入れると、左隣のセルに連結(colspan)します。
+</li>
+<li>列方向の連結(rowspan)は || のように文頭に「|」の数で連結数を指定します。
+</li>
+<li>セルの左右に空白を入れると左右、中央揃えができます。
+</li>
+</ul>
+
+<pre class='verbatim-soft'>
+.タイトル行,左揃え,右揃え,中央揃え,||縦連結
+,セル,1, 2, 3
+,セル,1, 2, 3 ,|| 4
+,横連結,1,==,==
+</pre>
+
+<table>
+<tr><th>タイトル行</th><th>左揃え</th><th>右揃え</th><th>中央揃え</th><th rowspan='2'>縦連結</th></tr>
+<tr><td>セル</td><td>1</td><td align='right'> 2</td><td align='right'> 3</td></tr>
+<tr><td>セル</td><td>1</td><td align='right'> 2</td><td align='center'> 3 </td><td align='right' rowspan='2'> 4</td></tr>
+<tr><td>横連結</td><td colspan='3'>1</td></tr>
+</table>
+
+
+<h3><a id='i6'> </a>整形済み領域</h3>
+<ul>
+<li> 行頭から3文字以上の空白がある場合は整形済み(pre)となります。
+</li>
+<li> --( と --) で囲まれた行は書いたまま表示されますが、リンクや文字飾りは有効です。
+</li>
+<li> ---( と ---) で囲まれた行はリンクや文字飾りも書いたまま表示されます。
+</li>
+<li> ----( と ----) で囲まれた行は書いたまま表示されますが、リンクや文字飾りは有効です。
+</li>
+<li> -----( と -----) で囲まれた行は書いたまま表示されますが、リンクや文字飾りは有効です。
+</li>
+<li> スタイルシートで表示形式を変更できます。
+</li>
+</ul>
+
+<pre class='verbatim-code'>
+ 行頭で空白3つ以上で整形済み領域
+  空白を4つ
+  Four spaces at the beginning of line.
+      8 spaces at the beginning of line.
+</pre>
+
+
+<h3><a id='i7'> </a>ハイパーリンク</h3>
+<ul>
+<li> <a href='http://www.mztn.org/'>http://www.mztn.org/</a>のようなURLは自動的にリンクになります。URLの終わりが空白か行末であることが必要です。
+</li>
+</ul>
+
+<pre class='verbatim-hard'>
+[[テキスト|URL]] の形式も可能です。
+</pre>
+
+
+<h3><a id='i8'> </a>文字飾り</h3>
+<ul>
+<li> シングルクォート2個ではさんだ部分は、<span class='quote1'>ボールド</span>になります。
+</li>
+<li> シングルクォート3個ではさんだ部分は、<span class='quote2'>赤ボールド</span>になります。
+</li>
+<li> スタイルシートで表示形式を変更できます。
+</li>
+<li> シングルクォート2個＋文字＋シングルクォートとシングルクォート4個ではさんで、次の例のように文字の属性を変更できます。
+</li>
+</ul>
+
+<pre class='verbatim-hard'>
+--(
+''黒ボールド''
+'''赤ボールド'''
+''b'青''''
+''g'グリーン''''
+''c'シアン''''
+''r'赤''''
+''m'マジェンタ''''
+''y'黄色''''
+''w'白''''
+''0'黒ボールド''''
+''1'青ボールド''''
+''2'グリーンボールド''''
+''3'シアンボールド''''
+''4'赤ボールド''''
+''5'マジェンタボールド''''
+''6'黄色ボールド''''
+''7'白ボールド''''
+''L'黒反転''''
+''B'青反転''''
+''G'グリーン反転''''
+''C'シアン反転''''
+''R'赤反転''''
+''M'マジェンタ反転''''
+''Y'黄色反転''''
+''W'白反転''''
+http://www.mztn.org/
+[[Jun's Homepage|http://www.mztn.org/]]
+[[[logo|./rvtlwiki.png]]]
+--)
+</pre>
+
+<pre class='verbatim-soft'>
+<span class='quote1'>黒ボールド</span>
+<span class='quote2'>赤ボールド</span>
+<span class='blue'>青</span>
+<span class='green'>グリーン</span>
+<span class='cyan'>シアン</span>
+<span class='red'>赤</span>
+<span class='magenta'>マジェンタ</span>
+<span class='yellow'>黄色</span>
+<span class='white'>白</span>
+<span class='bblack'>黒ボールド</span>
+<span class='bblue'>青ボールド</span>
+<span class='bgreen'>グリーンボールド</span>
+<span class='bcyan'>シアンボールド</span>
+<span class='bred'>赤ボールド</span>
+<span class='bmagenta'>マジェンタボールド</span>
+<span class='byellow'>黄色ボールド</span>
+<span class='bwhite'>白ボールド</span>
+<span class='iblack'>黒反転</span>
+<span class='iblue'>青反転</span>
+<span class='igreen'>グリーン反転</span>
+<span class='icyan'>シアン反転</span>
+<span class='ired'>赤反転</span>
+<span class='imagenta'>マジェンタ反転</span>
+<span class='iyellow'>黄色反転</span>
+<span class='iwhite'>白反転</span>
+<a href='http://www.mztn.org/'>http://www.mztn.org/</a>
+<a href='http://www.mztn.org/'>Jun's Homepage</a>
+<img alt='logo' src='./data/rvtlwiki.png'>
+</pre>
+
+<h3><a id='i9'> </a>定義形式リスト</h3>
+<ul>
+<li> コロン(:)を行頭に書くと、用語とその説明文のリストの形式となります。
+</li>
+</ul>
+<pre class='verbatim-soft'>
+:見出し:行を * で始めます。
+:リスト:行を - で始めます。
+:整形済みテキスト:段落を ---( ---) などで囲みます。
+:表:行を 「.」または「,」で始めます。セルの区切りは「,」です。
+</pre>
+
+<dl>
+<dt>見出し</dt><dd>行を * で始めます。</dd>
+<dt>リスト</dt><dd>行を - で始めます。</dd>
+<dt>整形済みテキスト</dt><dd>段落を ---( ---) などで囲みます。</dd>
+<dt>表</dt><dd>行を 「.」または「,」で始めます。セルの区切りは「,」です。</dd>
+</dl>
+
+<h3><a id='i10'> </a>コメントフォーム</h3>
+<ul>
+<li> 行頭に「?T」を書くとそのページの先頭に入力フォームが表示され、入力内容がページの先頭部分に書き込み時間とともに書き込まれます。</li>
+<li> 行頭に「?B」を書くとそのページの先頭に入力フォームが表示され、入力内容がページの最後部に書き込み時間とともに書き込まれます。</li>
+<li>入力したテキストは整形ルールにしたがって変換されます。</li>
+</ul>
+
+</div>
