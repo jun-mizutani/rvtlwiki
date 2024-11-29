@@ -2,8 +2,8 @@
 
 :-------------------------------------------------------------
 : RvtlWiki (rvtlwiki.cgi)
-: version : 2.00 (32bit) 2015/09/19
-: Copyright (C) 2005-2015
+: version : 2.06 (32bit) 2023/10/22
+: Copyright (C) 2005-2023
 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
 :     RvtlWiki may be copied under the terms of the
@@ -31,10 +31,10 @@
    u*="RvtlWiki New"  : RSSタイトル
    u=U+640            : 変更不可
    u*="RvtlWiki RSS"  : RSS description
-   U['N']=256*1024    : 最大ページサイズ
-   U['W']=80          : 編集領域の桁数
-   U['H']=30          : 編集領域の行数
-   U['R']=40          : 更新履歴表示件数
+   U['N']=1024*1024   : 最大ページサイズ
+   U['W']=120         : 編集領域の桁数
+   U['H']=50          : 編集領域の行数
+   U['R']=80          : 更新履歴表示件数
 :-------------------------------------------------------------
 : グローバル変数(配列を除く)
 :-------------------------
@@ -71,7 +71,7 @@
 :
    Z*="rvtlwiki.cgi"
    |ve ;=%<0 Z*="rvtlwiki.elf.cgi"
-   J*="Powered by RvtlWiki 2.00(32bit)"
+   J*="Powered by RvtlWiki 2.06(32bit)"
    [=0                : 範囲チェックOFF
    C=0                : ページDB要素数
    O=0                : グループDB要素数
@@ -164,9 +164,10 @@
    :-------------------------
 ^Exit
    a=I s=Q !=^SetADDR
-   "<div id='footer'><hr /><small><p align='right'> "
-   !=^TimerStop " from " $*=s
-   "</p></small><hr />" /
+   "<div id='footer'><hr />"
+   "<p class='gototop'><a href='#main'>[TOP]</a></p>
+   "<small><p class='wikitime'> " !=^TimerStop " from " $*=s
+   "</p></small>" /
    "<p align='right'><em>"
    "<a href='http://www.mztn.org/'>" $*=J "</a></em><br />" /
    "<img src='"
@@ -387,6 +388,12 @@
    x=Q                            : page 指定
    !=^HTMLTools
    "<h1>" $*=F[a*4+3] "</h1>"
+   : 2023-10-22
+   !=^GroupDBRead
+   a=F[a*4+2] !=^GroupDBSearch
+   / "<p style='text-align:right'>"
+   "<a href='" $*=Z "?GroupList&group=" ?=V[r*4+2] "'>["
+   $*=V[r*4+3] "]</a></p>" /
    x=Q !=^MakeDatName             : file名指定
    !=^DispWikiText
 ]
@@ -423,7 +430,7 @@
    x=Q !=^MakeDatName             : file名指定
    !=^DispWikiText
    / "<a name='append'><a>" / "<div id='comment'>" /
-   "<form action='" $*=Z " method='post' >" / "<fieldset>"
+   "<form action='" $*=Z "' method='post' >" / "<fieldset>"
    "<input type=hidden name=page value='" ?=b "'>" /
    "<strong>追記</strong><small>"
    " − ここに書いた文は、このページの最後に追加されます。"
@@ -1093,7 +1100,8 @@
    ;=c=0 c=C
    i=0,c-1
      "<tr><td>"
-     "<a href='" $*=Z "?DispPage&page=" ?=F[i*4+1] "'>"
+     "<a href='" $*=Z "?DispPage&page=" ?=F[i*4+1]
+     "&amp;UpdateTime=" ?=F[i*4+0] "'>"
      $*=F[i*4+3] "</a>"
      "</td><td>" /
      t=F[i*4+0] s=B !=^LocalTime
@@ -1101,7 +1109,7 @@
      ?[2]=s{2} ":" ?[2]=s{1} ":" ?[2]=s{0}
      "</td><td>"
      a=F[i*4+2] !=^GroupDBSearch
-     $*=s  "</td></tr>"
+     "<a href='" $*=Z "?GroupList&group=" ?=a "'>" $*=s "</a></td></tr>"
    @=i+1
    ^pdbl01
    "</table>" /
@@ -2063,6 +2071,6 @@
     ;=(f<0) d=d-1 f=f+1000000
     "  time:" ?=d "." ?[6]=f "sec" /
 ]
-
 #=1
 ~
+

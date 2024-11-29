@@ -2,14 +2,14 @@
 
 :-------------------------------------------------------------
 : RvtlWiki (render.cgi)
-: version : 2.00 (32bit) 2015/09/19
-: Copyright (C) 2005-2015
+: version : 2.05 (32bit) 2023/08/04
+: Copyright (C) 2005-2023
 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
 :     RvtlWiki may be copied under the terms of the
 :     GNU General Public License.
 :------------------------------------------------------------
-   M=256              : 最大ページサイズ(KB)
+   M=1024             : 最大ページサイズ(KB)
    *=*+(M*1024)       : メモリ拡張
    z=&                : heap top
    Y=z z=z+256        : Debug Switch
@@ -115,7 +115,7 @@
 : ----------------------------------------------------------
 ^RendWikiData
     +AEM
-    A=x E=y M=3000
+    A=x E=y M=10000
     !=^outputData
     -MEA
 ]
@@ -245,12 +245,12 @@
     ;=(i<7) M='C' C=i #=^_endAnalyze
     #=^_endAnalyze
   ^_jp_header
-    ;=(L(1)=$98)&(L(2)=$85) M='C' C=1 c=3 #=^_endAnalyze
-    ;=(L(1)=$96)&(L(2)=$A0) M='C' C=2 c=3 #=^_endAnalyze
-    ;=(L(1)=$97)&(L(2)=$8F) M='C' C=3 c=3 #=^_endAnalyze
-    ;=(L(1)=$97)&(L(2)=$B6) M='C' C=4 c=3 #=^_endAnalyze
-    ;=(L(1)=$96)&(L(2)=$B2) M='C' C=5 c=3 #=^_endAnalyze
-    ;=(L(1)=$98)&(L(2)=$86) M='C' C=6 c=3 #=^_endAnalyze
+    ;=(L(1)=$98)&(L(2)=$85) M='C' C=1 c=3 #=^_endAnalyze : BLACK STAR
+    ;=(L(1)=$96)&(L(2)=$A0) M='C' C=2 c=3 #=^_endAnalyze : BLACK SQUARE
+    ;=(L(1)=$97)&(L(2)=$8F) M='C' C=3 c=3 #=^_endAnalyze : BLACK CIRCLE
+    ;=(L(1)=$97)&(L(2)=$86) M='C' C=4 c=3 #=^_endAnalyze : BLACK DIAMOND
+    ;=(L(1)=$96)&(L(2)=$B2) M='C' C=5 c=3 #=^_endAnalyze : BLACK UP TRIANGLE
+    ;=(L(1)=$98)&(L(2)=$86) M='C' C=6 c=3 #=^_endAnalyze : WHITE STAR
     #=^_endAnalyze
   : 空白
   ^_space
@@ -314,6 +314,7 @@
     ;=(V=0)|(B=3) $*=P #=^_outputLineData
     @
       ;=(V&2)<>0 ;=(P(0)=$27)&(P(1)=$27) !=^quoteString #=^old00
+      ;=(P(0)='[')&(P(1)='[')&(P(2)='[')&(P(3)='[') !=^insertVid #=^old00
       ;=(P(0)='[')&(P(1)='[')&(P(2)='[') !=^insertImg #=^old00
       ;=(P(0)='[')&(P(1)='[') !=^quoteURL #=^old00
       ;=(P(0)='h')&(P(1)='t')&(P(2)='t')&(P(3)='p') !=^quoteURL2 #=^old00
@@ -384,6 +385,24 @@
     @ $=t(0) t=t+1 @=((t(0)=']')|(t(0)=0))
     "'>"
     P=t+2
+    -t
+]
+:
+: ----------------------------------------------------------
+: ビデオ挿入
+:  (in) P : 候補文字列の先頭
+:  (in) E : テキスト最終位置
+: ----------------------------------------------------------
+^insertVid
+    +t
+    t=P+4
+    "<video controls alt='"
+    @ $=t(0) t=t+1 @=((t(0)='|')|(t(0)=0))
+    t=t+1
+    "' src='"
+    @ $=t(0) t=t+1 @=((t(0)=']')|(t(0)=0))
+    "'>"
+    P=t+3
     -t
 ]
 :
@@ -607,7 +626,7 @@
 : ----------------------------------------------------------
 ^setCaptionTag
     / "<h" ?=C+1 "><a id='i" ?=J "'> </a>"
-    !=^outputLineData
+    "<a class='header' href='#main'>" !=^outputLineData "</a>"
     "</h" ?=C+1 ">" /
     J=J+1 Q=1
 ]
@@ -759,4 +778,3 @@
 :
 #=1
 ~
-

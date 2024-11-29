@@ -1,5 +1,6 @@
 /*
  * rvtlwiki.css
+ * 2023-08-04
  */
 
 body.normal {
@@ -12,6 +13,7 @@ div#menu ul li {
     float:left;
     padding: 3px 3px 3px 3px;
     margin-bottom: 5px;
+    margin-left: 0em;
     list-style-type: none;
     background-color: #f3e3e3;
     border-top: solid 1px #ff9393;
@@ -41,7 +43,7 @@ div#menu ul li a:hover {
     padding: 2px;
 }
 
-div#toc 
+div#toc
     border: 1px dotted #555555;
     padding: 3px;
     margin-bottom: 5px;
@@ -53,7 +55,7 @@ div#toc
 div#comment {
     background-color: #ddddff;
 }
-div#main }
+div#main {
 
 }
 
@@ -66,8 +68,16 @@ div#footer {
     clear: both;
 }
 
+.gototop {
+    text-align: left; float: left;
+}
+
+.wikitime {
+    text-align: right;
+}
+
 p {
-    margin: 0em 2em 0em 2em;
+    margin: 0.5em 2em 0.5em 2em;
     line-height: 140%;
 }
 
@@ -76,8 +86,8 @@ pre {
     font-size: 14px;
 }
 
-
 li {
+    margin-left: 1em;
     line-height: 120%;
 }
 
@@ -130,6 +140,17 @@ a img {
     border: none;
 }
 
+a.header:link {
+    color: navy;
+    text-decoration-line: none
+}
+
+a.header:hover {
+    color: #ffffff;
+    background-color: #000088;
+    text-decoration: underline;
+}
+
 h1 {
     text-align: center;
     border: #7478db 2px solid;
@@ -140,41 +161,11 @@ h1 {
     clear: both;
 }
 
-h2 {
-    text-align: left;
-    border: #7478db 1px solid;
-    color: black;
-    background: #a8acff;
-    padding: .1em .5em .1em .5em;
-}
-
-h3 {
-    text-align: left;
-    border-bottom: #7478db 1px solid;
-    color: black;
-    background: #a8acff;
-    padding: .1em .5em .1em .5em;
-    margin-left: 1em;
-    margin-right: 1em;
-}
-
-h4 {
-    text-align: left;
-    border-left: #a8acff 20px solid;
-    color: black;
-    padding: .1em .5em .1em .5em;
-    margin-left: 1em;
-    margin-right: 3em;
-}
-
-h5 {
-    text-align: left;
-    border-left: #a8acff 40px solid;
-    color: black;
-    padding: .1em .5em .1em .5em;
-    margin-left: 2em;
-    margin-right: 3em;
-}
+h2 { margin: 20px 5px 10px 5px; text-align: left; background: #f8f8ff; color: #555555; text-align: left; border: none; border-left: #000 25px solid; border-top: #aaaaaa 1px solid; border-bottom: #aaaaaa 1px solid; padding: .1em .5em .1em .5em; font-size:medium;}
+h3 { text-align: left; border-left: #0000ff 10px solid;  color: black; margin: 1em 1em 0.5em 1em; padding: .1em .5em .1em .5em; font-size:medium;}
+h4 { text-align: left; border-left: #a8acff 25px solid; border-bottom: #a8acff 1px solid; color: black; margin: 1em 1em 0.5em 1em; padding: .1em .5em .1em .5em; font-size:small;}
+h5 { text-align: left; border-left: #a0f0f0 20px solid; border-bottom: #a0f0f0 1px solid; color: black; margin: 0.5em 1em 0.5em 1.5em; padding: .1em .5em .1em .5em; font-size:small;}
+h6 { text-align: left; border-left: #f0b0b0 10px solid; border-bottom: #f0b0b0 1px solid; color: black; margin: 0.5em 2em 0.5em 2em; padding: .1em .5em .1em .5em; font-size:small;}
 
 .date {
     font-family: monospace;
@@ -275,6 +266,7 @@ span.quote1 {
     font-weight:bold;
     color: black;
 }
+
 
 /* ''' */
 span.quote2 {
