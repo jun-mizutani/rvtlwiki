@@ -2,8 +2,8 @@
 
 :-------------------------------------------------------------
 : RvtlWiki (rvtlwiki.cgi)
-: version : 2.06 (64bit) 2024/11/28
-: Copyright (C) 2005-2024
+: version : 2.07 (64bit) 2025/01/31
+: Copyright (C) 2005-2025
 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
 :     RvtlWiki may be copied under the terms of the
@@ -17,7 +17,7 @@
    z=&                : heap top
    U=z z=z+1024       : ユーザ設定領域
 :-------------------------------------------------------------
-: ユーザ設定
+: ユーザ設�
 :-------------------------------------------------------------
    u=U                : 変更不可
    u*="./data/"       : dataディレクトリのパス名 U[0]

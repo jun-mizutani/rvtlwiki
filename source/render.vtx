@@ -2,8 +2,8 @@
 
 :-------------------------------------------------------------
 : RvtlWiki (render.cgi)
-: version : 2.05 (32bit) 2023/08/04
-: Copyright (C) 2005-2023
+: version : 2.07 (32bit) 2025/01/31
+: Copyright (C) 2005-2025
 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
 :     RvtlWiki may be copied under the terms of the
@@ -14,7 +14,7 @@
    z=&                : heap top
    Y=z z=z+256        : Debug Switch
    Z=z z=z+256        : Buffer
-   T=z z=z+(M*1024)   : text
+   T=z z=z+(M*1536)   : text
    K=0
 :
    [=0                : 範囲チェックOFF
@@ -115,7 +115,7 @@
 : ----------------------------------------------------------
 ^RendWikiData
     +AEM
-    A=x E=y M=10000
+    A=x E=y M=20000
     !=^outputData
     -MEA
 ]

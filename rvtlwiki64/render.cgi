@@ -2,7 +2,7 @@
  
 10020 :-------------------------------------------------------------
 10030 : RvtlWiki (render.cgi)
-10040 : version : 2.06 (64bit) 2024/11/28
+10040 : version : 2.07 (64bit) 2025/01/31
 10050 : Copyright (C) 2005-2028
 10060 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 10070 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
@@ -10,7 +10,7 @@
 10090 :     GNU General Public License.
 10100 :------------------------------------------------------------
 10110    M=1024             : 最大ページサイズ(KB)
-10120    *=*+(M*1024)       : メモリ拡張
+10120    *=*+(M*1536)       : メモリ拡張
 10130    z=&                : heap top
 10140    Y=z z=z+256        : Debug Switch
 10150    Z=z z=z+256        : Buffer
@@ -115,7 +115,7 @@
 11140 : ----------------------------------------------------------
 11150 ^RendWikiData
 11160     +AEM
-11170     A=x E=y M=10000
+11170     A=x E=y M=20000
 11180     !=^outputData
 11190     -MEA
 11200 ]
@@ -778,3 +778,4 @@
 17770 :
 #=1
 ~
+ 

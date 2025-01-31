@@ -2,8 +2,8 @@
  
 10020 :-------------------------------------------------------------
 10030 : RvtlWiki (rvtlwiki.cgi)
-10040 : version : 2.06 (32bit) 2023/10/22
-10050 : Copyright (C) 2005-2023
+10040 : version : 2.07 (32bit) 2025/01/31
+10050 : Copyright (C) 2005-2025
 10060 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 10070 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
 10080 :     RvtlWiki may be copied under the terms of the
@@ -2073,4 +2073,3 @@
 30720 ]
 #=1
 ~
-
