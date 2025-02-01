@@ -1,6 +1,6 @@
 # RvtlWiki ver.2.07
 
-  2025/01/31  Jun Mizutani & Toshio Moritake
+  2025/02/02  Jun Mizutani & Toshio Moritake
 
 RvtlWikiは結城 浩 氏が公開されている YukiWiki (http://www.hyuki.com)
 の機能と文法を参考に rvtl (http://www.mztn.org/) という

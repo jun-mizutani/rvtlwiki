@@ -2,7 +2,7 @@
 
 :-------------------------------------------------------------
 : RvtlWiki (render.cgi)
-: version : 2.07 (64bit) 2025/01/31
+: version : 2.07 (64bit) 2025/02/02
 : Copyright (C) 2005-2028
 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
@@ -23,9 +23,9 @@
    Z*=\0 x=Z          : Wikiテキストファイル名
    !=^TextRead        : Wikiテキスト読み込み
    x={ y=}            : テキストデータ範囲設定
+   [=1
    !=^RendWikiData
    ;=Y(0)<>0 "<hr /><p> " !=^TimerStop "</p><hr />" /
-   [=1
    #=-1
 :
 :-------------------------------------------------

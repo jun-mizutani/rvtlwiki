@@ -1,8 +1,8 @@
 #!/usr/bin/rvtlw
- 
+
 10020 :-------------------------------------------------------------
 10030 : RvtlWiki (render.cgi)
-10040 : version : 2.07 (32bit) 2025/01/31
+10040 : version : 2.07 (32bit) 2025/02/02
 10050 : Copyright (C) 2005-2025
 10060 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 10070 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
@@ -10,11 +10,11 @@
 10090 :     GNU General Public License.
 10100 :------------------------------------------------------------
 10110    M=1024             : 最大ページサイズ(KB)
-10120    *=*+(M*1536)       : メモリ拡張
+10120    *=*+(M*1024)       : メモリ拡張
 10130    z=&                : heap top
 10140    Y=z z=z+256        : Debug Switch
 10150    Z=z z=z+256        : Buffer
-10160    T=z z=z+(M*1024)   : text
+10160    T=z z=z+(M*1536)   : text
 10170    K=0
 10180 :
 10190    [=0                : 範囲チェックOFF
@@ -23,9 +23,9 @@
 10220    Z*=\0 x=Z          : Wikiテキストファイル名
 10230    !=^TextRead        : Wikiテキスト読み込み
 10240    x={ y=}            : テキストデータ範囲設定
-10250    !=^RendWikiData
-10260    ;=Y(0)<>0 "<hr /><p> " !=^TimerStop "</p><hr />" /
-10270    [=1
+10250    [=1
+10260    !=^RendWikiData
+10270    ;=Y(0)<>0 "<hr /><p> " !=^TimerStop "</p><hr />" /
 10280    #=-1
 10290 :
 10300 :-------------------------------------------------
