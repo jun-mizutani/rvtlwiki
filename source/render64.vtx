@@ -10,11 +10,11 @@
 :     GNU General Public License.
 :------------------------------------------------------------
    M=1024             : 最大ページサイズ(KB)
-   *=*+(M*1024)       : メモリ拡張
+   *=*+(M*1536)       : メモリ拡張
    z=&                : heap top
    Y=z z=z+256        : Debug Switch
    Z=z z=z+256        : Buffer
-   T=z z=z+(M*1536)   : text
+   T=z z=z+(M*1024)   : text
    K=0
 :
    [=0                : 範囲チェックOFF
