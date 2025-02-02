@@ -2,7 +2,7 @@
 
 :-------------------------------------------------------------
 : RvtlWiki (rvtlwiki.cgi)
-: version : 2.07 (32bit) 2025/01/31
+: version : 2.07 (32bit) 2025/02/02
 : Copyright (C) 2005-2025
 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
@@ -71,7 +71,7 @@
 :
    Z*="rvtlwiki.cgi"
    |ve ;=%<0 Z*="rvtlwiki.elf.cgi"
-   J*="Powered by RvtlWiki 2.06(32bit)"
+   J*="Powered by RvtlWiki 2.07(32bit)"
    [=0                : 範囲チェックOFF
    C=0                : ページDB要素数
    O=0                : グループDB要素数

@@ -2,7 +2,7 @@
  
 10020 :-------------------------------------------------------------
 10030 : RvtlWiki (rvtlwiki.cgi)
-10040 : version : 2.07 (64bit) 2025/01/31
+10040 : version : 2.07 (64bit) 2025/02/02
 10050 : Copyright (C) 2005-2025
 10060 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 10070 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
@@ -71,7 +71,7 @@
 10700 :
 10710    Z*="rvtlwiki.cgi"
 10720    |ve ;=%<0 Z*="rvtlwiki.elf.cgi"
-10730    J*="Powered by RvtlWiki 2.06(64bit)"
+10730    J*="Powered by RvtlWiki 2.07(64bit)"
 10740    [=0                : 範囲チェックOFF
 10750    C=0                : ページDB要素数
 10760    O=0                : グループDB要素数
