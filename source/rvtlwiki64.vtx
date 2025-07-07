@@ -3,7 +3,7 @@
 :-------------------------------------------------------------
 : RvtlWiki (rvtlwiki.cgi)
 : version : 2.07 (64bit) 2025/02/02
-: Copyright (C) 2005-2025
+: Copyright (C) 2005-2025: RvtlWiki (rvtlwiki.cgi)
 :   Jun Mizutani <mizutani.jun@nifty.ne.jp> http://www.mztn.org/
 : & Toshio Moritake <odinsroom@gmail.com> http://www.odin.hyork.net/
 :     RvtlWiki may be copied under the terms of the
@@ -17,7 +17,7 @@
    z=&                : heap top
    U=z z=z+1024       : ユーザ設定領域
 :-------------------------------------------------------------
-: ユーザ設�
+: ユーザ設定
 :-------------------------------------------------------------
    u=U                : 変更不可
    u*="./data/"       : dataディレクトリのパス名 U[0]
@@ -195,7 +195,7 @@
 : RSS Feed
 :-------------------------------------------------
 ^RSS
-   "Content-type: text/html; charset=UTF-8" / /
+   "Content-type: text/xml; charset=UTF-8" / /
    "<?xml version='1.0' encoding='UTF-8' ?>" / /
    "<rdf:RDF" /
    " xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'" /
@@ -388,7 +388,7 @@
    x=Q                            : page 指定
    !=^HTMLTools
    "<h1>" $*=F[a*4+3] "</h1>"
-   : 2023-10-22
+   : 2023-10-22 所属グループの表示
    !=^GroupDBRead
    a=F[a*4+2] !=^GroupDBSearch
    / "<p style='text-align:right'>"
@@ -1955,7 +1955,6 @@
   +abc
   |vc
   k=%
-  ;=(k=6) a=36 b=x c=-100 d=y  : symlinkat (RISC-V64)
   ;=(k=5) a=36 b=x c=-100 d=y  : symlinkat (Arm64)
   ;=(k=4) a=88 b=x c=y : symlink (x86_64)
   |zz
@@ -1971,7 +1970,6 @@
   +abcdk
   |vc
   k=%
-  ;=(k=6) a=35 b=-100 c=x d=0 : unlinkat (Arm64)
   ;=(k=5) a=35 b=-100 c=x d=0 : unlinkat (Arm64)
   ;=(k=4) a=87 b=x        : unlink (x86_64)
   |zz
@@ -2043,7 +2041,6 @@
   d=a               : size
   |vc
   k=%
-  ;=(k=6) a=63      : read (RISC-V64)
   ;=(k=5) a=63      : read (Arm64)
   ;=(k=4) a=0       : read (x86_64)
   b=0               : stdin
@@ -2080,5 +2077,6 @@
     ;=(f<0) d=d-1 f=f+1000000
     "  time:" ?=d "." ?[6]=f "sec" /
 ]
+
 #=1
 ~
